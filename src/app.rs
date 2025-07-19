@@ -7,20 +7,23 @@ pub enum Mode {
 pub struct App {
     pub mode: Mode,
     pub quitting: bool,
+    pub file: String,
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(buffer: String) -> Self {
         App {
             mode: Mode::Normal,
             quitting: false,
+            file: buffer,
         }
     }
+    
+    pub fn insert_mode(&mut self) {
+        self.mode = Mode::Insert
+    }
 
-    pub fn toggle_mode(&mut self) {
-        match &self.mode {
-            Mode::Normal => self.mode = Mode::Insert,
-            Mode::Insert => self.mode = Mode::Normal,
-        }
+    pub fn normal_mode(&mut self) {
+        self.mode = Mode::Normal
     }
 }
