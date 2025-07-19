@@ -38,26 +38,14 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                 match key.code {
                     KeyCode::Char('h') => {
                         app.current_pos.char = app.current_pos.char.saturating_sub(1);
-
-                        // If current position character is bigger than length of current line,
-                        // limit it to last character on line.
-                        // app.current_pos.char = {
-                        //     if app.current_pos.char
-                        //         >= app.file_lines[(app.current_pos.char - 1) as usize].1
-                        //     {
-                        //         app.file_lines[app.current_pos.char as usize].1
-                        //     } else {
-                        //         app.current_pos.char.saturating_sub(1)
-                        //     }
-                        // }
                     }
 
                     KeyCode::Char('j') => {
-                        // If you go down and try to go deeper down than allowed, just set to
-                        // terminal limit.
+                        // If current line is bigger than length of lines vector, limit
+                        // it to last line available.
                         app.current_pos.line = {
-                            if app.current_pos.line >= app.size_y {
-                                app.size_y
+                            if app.current_pos.line >= app.file_lines.len() as u16 {
+                                app.file_lines.len() as u16
                             } else {
                                 app.current_pos.line.saturating_add(1)
                             }
@@ -67,11 +55,13 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                         app.current_pos.line = app.current_pos.line.saturating_sub(1);
                     }
                     KeyCode::Char('l') => {
-                        // If you go right and try to go farther than allowed, just set to
-                        // terminal limit.
+                        // If current position character is bigger than length of current line,
+                        // limit it to last character on line.
                         app.current_pos.char = {
-                            if app.current_pos.char >= app.size_x {
-                                app.size_x
+                            if app.current_pos.char
+                                >= app.file_lines[app.current_pos.line as usize].1 - 1
+                            {
+                                app.file_lines[app.current_pos.line as usize].1 - 1
                             } else {
                                 app.current_pos.char.saturating_add(1)
                             }

@@ -11,10 +11,18 @@ pub struct EditorPosition {
 
 pub struct App {
     pub mode: Mode,
+
     pub quitting: bool,
+
+    // Maybe convert this to a struct for easy use?
     pub file_lines: Vec<(String, u16)>,
-    pub size_x: u16,
-    pub size_y: u16,
+
+    #[allow(dead_code)]
+    pub size_x: u16, // Will be used later on.
+
+    #[allow(dead_code)]
+    pub size_y: u16, // Will be used later on.
+
     pub current_pos: EditorPosition,
 }
 
