@@ -38,6 +38,18 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                 match key.code {
                     KeyCode::Char('h') => {
                         app.current_pos.char = app.current_pos.char.saturating_sub(1);
+
+                        // If current position character is bigger than length of current line,
+                        // limit it to last character on line.
+                        // app.current_pos.char = {
+                        //     if app.current_pos.char
+                        //         >= app.file_lines[(app.current_pos.char - 1) as usize].1
+                        //     {
+                        //         app.file_lines[app.current_pos.char as usize].1
+                        //     } else {
+                        //         app.current_pos.char.saturating_sub(1)
+                        //     }
+                        // }
                     }
 
                     KeyCode::Char('j') => {

@@ -11,7 +11,10 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .constraints([Constraint::Min(1), Constraint::Length(1)])
         .split(frame.area());
 
-    let file_text = Text::raw(app.file_lines.join("\n"));
+    // Iterate over the Vec<(linestring, length)> and just get the linestring out 
+    let file_string: Vec<String> = app.file_lines.iter().map(|s| s.0.to_string()).collect();
+
+    let file_text = Text::raw(file_string.join("\n"));
     frame.set_cursor_position(Position {
         x: app.current_pos.char,
         y: app.current_pos.line,
