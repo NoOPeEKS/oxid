@@ -8,10 +8,10 @@ use ratatui::{
 pub fn ui(frame: &mut Frame, app: &App) {
     let window_area_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(2)])
+        .constraints([Constraint::Min(1), Constraint::Length(1)])
         .split(frame.area());
 
-    let file_text = Text::raw(app.file.clone());
+    let file_text = Text::raw(app.file_lines.join("\n"));
     frame.set_cursor_position(Position {
         x: app.cursor_x,
         y: app.cursor_y,
