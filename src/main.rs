@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::fs::read_to_string;
 
-use crate::app::App;
+use crate::app::{App, Mode};
 use crate::ui::ui;
 
 mod app;
@@ -22,7 +22,9 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
         terminal.draw(|frame| ui(frame, app))?;
 
         if let Event::Key(key) = event::read()? {
-            if key.modifiers.contains(KeyModifiers::CONTROL) {
+            if key.code == KeyCode::Esc && app.mode == Mode::Insert {
+                app.normal_mode();
+            } else if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
                     KeyCode::Char('e') => {
                         app.insert_mode();
@@ -30,8 +32,14 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                     KeyCode::Char('c') => app.quitting = true,
                     _ => {}
                 }
-            } else if key.code == KeyCode::Esc {
-                app.normal_mode();
+            } else if app.mode == Mode::Normal {
+                match key.code {
+                    KeyCode::Char('h') => app.cursor_x = app.cursor_x.saturating_sub(1),
+                    KeyCode::Char('j') => app.cursor_y = app.cursor_y.saturating_add(1),
+                    KeyCode::Char('k') => app.cursor_y = app.cursor_y.saturating_sub(1),
+                    KeyCode::Char('l') => app.cursor_x = app.cursor_x.saturating_add(1),
+                    _ => {}
+                }
             }
         }
         if app.quitting {

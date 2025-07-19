@@ -1,7 +1,7 @@
 use crate::app::App;
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Position},
     text::Text,
 };
 
@@ -12,6 +12,10 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .split(frame.area());
 
     let file_text = Text::raw(app.file.clone());
+    frame.set_cursor_position(Position {
+        x: app.cursor_x,
+        y: app.cursor_y,
+    });
     frame.render_widget(file_text, window_area_chunks[0]);
 
     let mode = format!("{:?}", app.mode);
