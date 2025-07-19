@@ -3,5 +3,7 @@
 A simple Terminal Text Editor built in Rust for learning purposes.
 
 # TODOS
-- Fix bug where if you are on a longer line then go down/up, cursor is on that position instead of relative farthest char of new line.
-- Editing file functionality. To be defined more in depth.
+- Insert Mode:
+    * Add characters to an existing line and move the others if necessary.
+    * Backspace removes characters.
+    * If all characters of a new line are removed using backspace, delete the line.

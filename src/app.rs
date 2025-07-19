@@ -5,8 +5,8 @@ pub enum Mode {
 }
 
 pub struct EditorPosition {
-    pub line: u16,
-    pub char: u16,
+    pub line: u16, // Good idea to change to usize?
+    pub char: u16, // Good idea to change to usize?
 }
 
 pub struct App {
@@ -37,7 +37,7 @@ impl App {
                 .collect(),
             size_x: size_x - 2, // Status line is on size -1 so cursor must be on -2 max.
             size_y: size_y - 2, // Status line is on size -1 so cursor must be on -2 max.
-            current_pos: EditorPosition { line: 0, char: 0 },
+            current_pos: EditorPosition { line: 0, char: 2 },
         }
     }
 
