@@ -67,6 +67,12 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                             }
                         }
                     }
+                    // Create new line and move to it
+                    KeyCode::Char('o') => {
+                        app.file_lines.push((String::new(), 0_u16));
+                        app.current_pos.line = app.current_pos.line.saturating_add(1);
+                        app.insert_mode();
+                    }
                     _ => {}
                 }
             }
