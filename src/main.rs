@@ -11,7 +11,9 @@ mod ui;
 fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     let file_text = read_to_string("./testfiles/exceptions.py")?;
-    let mut app = App::new(file_text);
+    let tsize_x = terminal.size()?.width;
+    let tsize_y = terminal.size()?.height;
+    let mut app = App::new(file_text, tsize_x, tsize_y);
     let result = run(&mut terminal, &mut app);
     ratatui::restore();
     result
@@ -35,9 +37,29 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
             } else if app.mode == Mode::Normal {
                 match key.code {
                     KeyCode::Char('h') => app.cursor_x = app.cursor_x.saturating_sub(1),
-                    KeyCode::Char('j') => app.cursor_y = app.cursor_y.saturating_add(1),
+                    KeyCode::Char('j') => {
+                        // If you go down and try to go deeper down than allowed, just set to
+                        // terminal limit.
+                        app.cursor_y = {
+                            if app.cursor_y >= app.size_y {
+                                app.size_y
+                            } else {
+                                app.cursor_y.saturating_add(1)
+                            }
+                        }
+                    }
                     KeyCode::Char('k') => app.cursor_y = app.cursor_y.saturating_sub(1),
-                    KeyCode::Char('l') => app.cursor_x = app.cursor_x.saturating_add(1),
+                    KeyCode::Char('l') => {
+                        // If you go right and try to go farther than allowed, just set to
+                        // terminal limit.
+                        app.cursor_x = {
+                            if app.cursor_x >= app.size_x {
+                                app.size_x
+                            } else {
+                                app.cursor_x.saturating_add(1)
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
