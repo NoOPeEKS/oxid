@@ -36,27 +36,32 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
                 }
             } else if app.mode == Mode::Normal {
                 match key.code {
-                    KeyCode::Char('h') => app.cursor_x = app.cursor_x.saturating_sub(1),
+                    KeyCode::Char('h') => {
+                        app.current_pos.char = app.current_pos.char.saturating_sub(1);
+                    }
+
                     KeyCode::Char('j') => {
                         // If you go down and try to go deeper down than allowed, just set to
                         // terminal limit.
-                        app.cursor_y = {
-                            if app.cursor_y >= app.size_y {
+                        app.current_pos.line = {
+                            if app.current_pos.line >= app.size_y {
                                 app.size_y
                             } else {
-                                app.cursor_y.saturating_add(1)
+                                app.current_pos.line.saturating_add(1)
                             }
                         }
                     }
-                    KeyCode::Char('k') => app.cursor_y = app.cursor_y.saturating_sub(1),
+                    KeyCode::Char('k') => {
+                        app.current_pos.line = app.current_pos.line.saturating_sub(1);
+                    }
                     KeyCode::Char('l') => {
                         // If you go right and try to go farther than allowed, just set to
                         // terminal limit.
-                        app.cursor_x = {
-                            if app.cursor_x >= app.size_x {
+                        app.current_pos.char = {
+                            if app.current_pos.char >= app.size_x {
                                 app.size_x
                             } else {
-                                app.cursor_x.saturating_add(1)
+                                app.current_pos.char.saturating_add(1)
                             }
                         }
                     }

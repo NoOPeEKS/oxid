@@ -13,8 +13,8 @@ pub fn ui(frame: &mut Frame, app: &App) {
 
     let file_text = Text::raw(app.file_lines.join("\n"));
     frame.set_cursor_position(Position {
-        x: app.cursor_x,
-        y: app.cursor_y,
+        x: app.current_pos.char,
+        y: app.current_pos.line,
     });
     frame.render_widget(file_text, window_area_chunks[0]);
 

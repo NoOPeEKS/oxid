@@ -13,8 +13,6 @@ pub struct App {
     pub mode: Mode,
     pub quitting: bool,
     pub file_lines: Vec<String>,
-    pub cursor_x: u16,
-    pub cursor_y: u16,
     pub size_x: u16,
     pub size_y: u16,
     pub current_pos: EditorPosition,
@@ -26,8 +24,6 @@ impl App {
             mode: Mode::Normal,
             quitting: false,
             file_lines: file_text.lines().map(|l| l.to_string()).collect(),
-            cursor_x: 0,
-            cursor_y: 0,
             size_x: size_x - 2, // Status line is on size -1 so cursor must be on -2 max.
             size_y: size_y - 2, // Status line is on size -1 so cursor must be on -2 max.
             current_pos: EditorPosition { line: 0, char: 0 },
