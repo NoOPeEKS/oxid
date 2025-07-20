@@ -82,20 +82,10 @@ impl App {
     }
 
     pub fn move_cursor_left(&mut self) {
-        if self.mode == Mode::Normal {
-            self.current_pos.char = {
-                // Never let current cursor position be less than 2, because char
-                // positions 0 and 1 are occupied by line number bar's rendering.
-                if self.current_pos.char == NUMBAR_SPACE {
-                    self.current_pos.char
-                } else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1
-                {
-                    self.file_lines[self.current_pos.line as usize].1 + 1
-                } else {
-                    self.current_pos.char.saturating_sub(1)
-                }
+        if self.mode == Mode::Normal
+            && self.current_pos.char > NUMBAR_SPACE {
+                self.current_pos.char = self.current_pos.char.saturating_sub(1);
             }
-        }
     }
 
     pub fn move_cursor_down(&mut self) {
