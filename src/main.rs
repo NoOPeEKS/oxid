@@ -47,6 +47,8 @@ fn run(
                             }
                             _ => {}
                         }
+                    } else if app.mode == Mode::Insert {
+                        app.insert_char(ch);
                     }
                 }
             }

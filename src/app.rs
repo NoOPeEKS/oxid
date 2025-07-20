@@ -43,6 +43,20 @@ impl App {
         }
     }
 
+    pub fn insert_char(&mut self, ch: char) {
+        // TODO: Need to handle edge case where line is new line.
+        // Probably gonna have to optimize this later as there are many clones.
+        // In the future, handling '\n' or '<CR>' will be tricky.
+
+        let mut curr_line = self.file_lines[self.current_pos.line as usize].0.clone();
+        // Subtract NUMBAR_SPACE beacuse of the numbar taking 2 chars of render space.
+        curr_line.insert((self.current_pos.char - NUMBAR_SPACE).into(), ch);
+
+        self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
+        self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
+        self.current_pos.char = self.current_pos.char.saturating_add(1);
+    }
+
     pub fn insert_mode(&mut self) {
         self.mode = Mode::Insert
     }
