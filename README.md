@@ -1,13 +1,16 @@
 # Oxid
 
-A simple Terminal Text Editor built in Rust for learning purposes.
+A simple Terminal Text Editor built in Rust for learning purposes, inspired by Vim.
 
 # TODOS
-- Fix bug when you are at last char of line it doesn't let you move left.
 - Fix performance issues when inserting new characters.
+- Refactor file lines into structs for more readability.
+- Implement some sort of viewport to scroll long files (right now it can only show what the screen allows).
 - Insert Mode:
-    * Backspace removes characters.
-# BUGS
-- Whenever you come out from insert mode, cursor should back up a position. Other wise it lets the cursor stay one tile ahead of where it's supposed to go.
-- Deleting characters is tricky, lots of bugs happen when removing last and first char of a string or when string becomes empty.
-- Cursor when inserting, inserts before cursor. Cursor when deleting, deletes what's inside of cursor.
+    * Using backspace on an empty line should delete the line and move the cursor upwards unless its the first line.
+    * Ctrl + hjkl should allow to move cursor in insert mode.
+- Vim bindings:
+    * 'w' should place cursor in next word.
+    * 'b' should place cursor in previous word.
+    * 'dd' should delete current line.
+    * Implement some sort of rudimentary concatenation of motions.
