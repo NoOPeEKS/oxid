@@ -72,6 +72,33 @@ impl App {
                 self.current_pos.char = self.current_pos.char.saturating_sub(1);
             }
         }
+
+        // If current pos is just after the numbar, means we're deleting entire line.
+        if self.current_pos.char == NUMBAR_SPACE && self.current_pos.line > 0 {
+            let current_line_index = self.current_pos.line as usize;
+
+            // If it's empty, should just delete the line and move cursor.
+            if self.file_lines[current_line_index].0.is_empty() {
+                self.file_lines.remove(current_line_index);
+                self.current_pos.line = self.current_pos.line.saturating_sub(1);
+                self.current_pos.char = self.file_lines[current_line_index - 1].1 + NUMBAR_SPACE;
+            }
+            // If it's not empty, should join the current linestring with the previous unless it's the
+            // first line.
+            else {
+                let line = self.file_lines[current_line_index].clone();
+                let mut top_line = self.file_lines[current_line_index - 1].clone();
+                let top_line_old_len = top_line.1;
+
+                top_line.0 = top_line.0 + &line.0;
+                top_line.1 = top_line.0.len() as u16;
+                self.file_lines[current_line_index - 1] = top_line;
+                self.file_lines.remove(current_line_index);
+
+                self.current_pos.line = self.current_pos.line.saturating_sub(1);
+                self.current_pos.char = top_line_old_len + NUMBAR_SPACE;
+            }
+        }
     }
 
     pub fn insert_mode(&mut self) {
