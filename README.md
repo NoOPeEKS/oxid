@@ -1,13 +1,9 @@
 # Oxid
 
-A simple Terminal Text Editor built in Rust for learning purposes, inspired by Vim.
-
-# 📝 Terminal Text Editor
-
 A simple, vim-inspired terminal text editor built with Rust. This is a personal project to build a custom text editor and learn Rust in the process!
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
-![Terminal](https://img.shields.io/badge/Terminal-4D4D4D?style=for-the-badge&logo=windows-terminal&logoColor=white)
+![Terminal](https://img.shields.io/badge/terminal%20based-4D4D4D?style=for-the-badge&logo=windows-terminal&logoColor=white)
 
 ## ✨ Features
 
