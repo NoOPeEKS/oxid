@@ -11,13 +11,19 @@ pub struct EditorPosition {
     pub char: u16, // Good idea to change to usize?
 }
 
+#[derive(Clone, Debug)]
+pub struct FileLine {
+    pub content: String,
+    pub length: u16,
+}
+
 pub struct App {
     pub mode: Mode,
 
     pub quitting: bool,
 
     // Maybe convert this to a struct for easy use?
-    pub file_lines: Vec<(String, u16)>,
+    pub file_lines: Vec<FileLine>,
 
     #[allow(dead_code)]
     pub size_x: u16, // Will be used later on.
@@ -35,7 +41,10 @@ impl App {
             quitting: false,
             file_lines: file_text
                 .lines()
-                .map(|l| (l.to_string(), l.len() as u16))
+                .map(|l| FileLine {
+                    content: l.to_string(),
+                    length: l.len() as u16,
+                })
                 .collect(),
             size_x: size_x - 2, // Status line is on size -1 so cursor must be on -2 max.
             size_y: size_y - 2, // Status line is on size -1 so cursor must be on -2 max.
@@ -48,27 +57,31 @@ impl App {
         // Probably gonna have to optimize this later as there are many clones.
         // In the future, handling '\n' or '<CR>' will be tricky.
 
-        let mut curr_line = self.file_lines[self.current_pos.line as usize].0.clone();
+        let mut curr_line = self.file_lines[self.current_pos.line as usize]
+            .content
+            .clone();
         let insert_index = (self.current_pos.char - NUMBAR_SPACE) as usize;
         if insert_index <= curr_line.len() {
             curr_line.insert(insert_index, ch);
-            self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
-            self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
+            self.file_lines[self.current_pos.line as usize].content = curr_line.clone();
+            self.file_lines[self.current_pos.line as usize].length = curr_line.len() as u16;
             self.current_pos.char = self.current_pos.char.saturating_add(1);
         }
     }
 
     pub fn remove_char(&mut self) {
         // Probably gonna have to optimize this later as there are many clones.
-        let mut curr_line = self.file_lines[self.current_pos.line as usize].0.clone();
+        let mut curr_line = self.file_lines[self.current_pos.line as usize]
+            .content
+            .clone();
 
         // If current position is and only if is bigger than the numbar, delete it.
         if self.current_pos.char > NUMBAR_SPACE {
             let string_index = (self.current_pos.char - 1 - NUMBAR_SPACE) as usize;
             if string_index < curr_line.len() {
                 curr_line.remove(string_index);
-                self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
-                self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
+                self.file_lines[self.current_pos.line as usize].content = curr_line.clone();
+                self.file_lines[self.current_pos.line as usize].length = curr_line.len() as u16;
                 self.current_pos.char = self.current_pos.char.saturating_sub(1);
             }
         }
@@ -78,20 +91,21 @@ impl App {
             let current_line_index = self.current_pos.line as usize;
 
             // If it's empty, should just delete the line and move cursor.
-            if self.file_lines[current_line_index].0.is_empty() {
+            if self.file_lines[current_line_index].content.is_empty() {
                 self.file_lines.remove(current_line_index);
                 self.current_pos.line = self.current_pos.line.saturating_sub(1);
-                self.current_pos.char = self.file_lines[current_line_index - 1].1 + NUMBAR_SPACE;
+                self.current_pos.char =
+                    self.file_lines[current_line_index - 1].length + NUMBAR_SPACE;
             }
             // If it's not empty, should join the current linestring with the previous unless it's the
             // first line.
             else {
                 let line = self.file_lines[current_line_index].clone();
                 let mut top_line = self.file_lines[current_line_index - 1].clone();
-                let top_line_old_len = top_line.1;
+                let top_line_old_len = top_line.length;
 
-                top_line.0 = top_line.0 + &line.0;
-                top_line.1 = top_line.0.len() as u16;
+                top_line.content = top_line.content + &line.content;
+                top_line.length = top_line.content.len() as u16;
                 self.file_lines[current_line_index - 1] = top_line;
                 self.file_lines.remove(current_line_index);
 
@@ -130,13 +144,15 @@ impl App {
 
             // Edge case where when going down, the line is empty line. Then put cursor
             // right after numbar.
-            if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
+            if self.file_lines[self.current_pos.line as usize].length == 0_u16 {
                 self.current_pos.char = NUMBAR_SPACE;
             }
             // If current char after going down would be bigger than the new line's
             // length, put it on max character of the line.
-            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1 {
-                self.current_pos.char = self.file_lines[self.current_pos.line as usize].1 + 1_u16;
+            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
+            {
+                self.current_pos.char =
+                    self.file_lines[self.current_pos.line as usize].length + 1_u16;
             }
         }
     }
@@ -146,20 +162,22 @@ impl App {
             self.current_pos.line = self.current_pos.line.saturating_sub(1);
             // Edge case where when going up the line is empty line. Then put cursor
             // after numbar.
-            if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
+            if self.file_lines[self.current_pos.line as usize].length == 0_u16 {
                 self.current_pos.char = NUMBAR_SPACE;
             }
             // If current char after going up would be bigger than the new line's
             // length, put it on max character of the line.
-            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1 {
-                self.current_pos.char = self.file_lines[self.current_pos.line as usize].1 + 1_u16;
+            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
+            {
+                self.current_pos.char =
+                    self.file_lines[self.current_pos.line as usize].length + 1_u16;
             }
         }
     }
 
     pub fn move_cursor_right(&mut self) {
         if self.mode == Mode::Normal {
-            let line_len = self.file_lines[self.current_pos.line as usize].1;
+            let line_len = self.file_lines[self.current_pos.line as usize].length;
             let max_cursor_pos = line_len + NUMBAR_SPACE;
             if self.current_pos.char < max_cursor_pos {
                 self.current_pos.char = self.current_pos.char.saturating_add(1);
@@ -170,7 +188,10 @@ impl App {
     pub fn insert_line_below(&mut self) {
         self.file_lines.insert(
             (self.current_pos.line + 1) as usize,
-            (String::from(""), 0_u16),
+            FileLine {
+                content: String::from(""),
+                length: 0_u16,
+            },
         );
         self.current_pos.line = self.current_pos.line.saturating_add(1);
         self.current_pos.char = NUMBAR_SPACE;

@@ -32,7 +32,11 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .split(editor_area);
 
     // Iterate over the Vec<(linestring, length)> and just get the linestring out
-    let file_string: Vec<String> = app.file_lines.iter().map(|s| s.0.to_string()).collect();
+    let file_string: Vec<String> = app
+        .file_lines
+        .iter()
+        .map(|s| s.content.to_string())
+        .collect();
 
     let file_text = Paragraph::new(file_string.join("\n"));
 
@@ -45,7 +49,9 @@ pub fn ui(frame: &mut Frame, app: &App) {
 
     let mode = format!(
         "{:?} Mode :: {}:{}",
-        app.mode, app.current_pos.line, app.current_pos.char - 2
+        app.mode,
+        app.current_pos.line,
+        app.current_pos.char - 2
     );
     let text = Text::raw(mode);
     frame.render_widget(text, editor_area_chunks[1]);
