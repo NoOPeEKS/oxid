@@ -4,6 +4,7 @@ A simple Terminal Text Editor built in Rust for learning purposes, inspired by V
 
 # TODOS
 - Fix performance issues when inserting new characters.
+- Implement test cases.
 - Refactor file lines into structs for more readability.
 - Implement some sort of viewport to scroll long files (right now it can only show what the screen allows).
 - Insert Mode:
