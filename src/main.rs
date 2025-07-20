@@ -10,8 +10,6 @@ mod app;
 mod events;
 mod ui;
 
-const NUMBAR_SPACE: u16 = 2;
-
 fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     let file_text = read_to_string("./testfiles/exceptions.py")?;
@@ -37,96 +35,17 @@ fn run(
                 EventKind::Quit => app.quitting = true,
                 EventKind::NormalMode => app.normal_mode(),
                 EventKind::InsertMode => app.insert_mode(),
-                EventKind::InsertLineBelow => {
-                    app.file_lines.insert(
-                        (app.current_pos.line + 1) as usize,
-                        (String::from(""), 0_u16),
-                    );
-                    app.current_pos.line = app.current_pos.line.saturating_add(1);
-                    app.current_pos.char = NUMBAR_SPACE;
-                    app.insert_mode();
-                }
-                EventKind::MoveCursorLeft => {
+                EventKind::KeyPressed(ch) => {
                     if app.mode == Mode::Normal {
-                        app.current_pos.char = {
-                            // Never let current cursor position be less than 2, because char
-                            // positions 0 and 1 are occupied by line number bar's rendering.
-                            if app.current_pos.char == NUMBAR_SPACE {
-                                app.current_pos.char
-                            } else if app.current_pos.char
-                                > app.file_lines[app.current_pos.line as usize].1
-                            {
-                                app.file_lines[app.current_pos.line as usize].1 + 1
-                            } else {
-                                app.current_pos.char.saturating_sub(1)
+                        match ch {
+                            'h' => app.move_cursor_left(),
+                            'j' => app.move_cursor_down(),
+                            'k' => app.move_cursor_up(),
+                            'l' => app.move_cursor_right(),
+                            'o' => {
+                                app.insert_line_below();
                             }
-                        }
-                    }
-                }
-                EventKind::MoveCursorDown => {
-                    if app.mode == Mode::Normal {
-                        // If current line is bigger than length of lines vector - 1, limit
-                        // it to last line available. Must be len(vec) - 1 because lines start at
-                        // 0.
-                        app.current_pos.line = {
-                            if app.current_pos.line >= (app.file_lines.len() - 1) as u16 {
-                                (app.file_lines.len() - 1) as u16
-                            } else {
-                                app.current_pos.line.saturating_add(1)
-                            }
-                        };
-
-                        // Edge case where when going down, the line is empty line. Then put cursor
-                        // right after numbar.
-                        if app.file_lines[app.current_pos.line as usize].1 == 0_u16 {
-                            app.current_pos.char = NUMBAR_SPACE;
-                        }
-                        // If current char after going down would be bigger than the new line's
-                        // length, put it on max character of the line.
-                        else if app.current_pos.char
-                            > app.file_lines[app.current_pos.line as usize].1
-                        {
-                            app.current_pos.char =
-                                app.file_lines[app.current_pos.line as usize].1 + 1_u16;
-                        }
-                    }
-                }
-                EventKind::MoveCursorUp => {
-                    if app.mode == Mode::Normal {
-                        app.current_pos.line = app.current_pos.line.saturating_sub(1);
-                        // Edge case where when going up the line is empty line. Then put cursor
-                        // after numbar.
-                        if app.file_lines[app.current_pos.line as usize].1 == 0_u16 {
-                            app.current_pos.char = NUMBAR_SPACE;
-                        }
-                        // If current char after going up would be bigger than the new line's
-                        // length, put it on max character of the line.
-                        else if app.current_pos.char
-                            > app.file_lines[app.current_pos.line as usize].1
-                        {
-                            app.current_pos.char =
-                                app.file_lines[app.current_pos.line as usize].1 + 1_u16;
-                        }
-                    }
-                }
-                EventKind::MoveCursorRight => {
-                    if app.mode == Mode::Normal {
-                        app.current_pos.char = {
-                            // If current line is a newly added line, default to first editor
-                            // character that starts at NUMBAR_SPACE
-                            if app.file_lines[app.current_pos.line as usize].1 == 0_u16 {
-                                NUMBAR_SPACE
-                            } else if app.current_pos.char
-                                > app.file_lines[app.current_pos.line as usize].1
-                            {
-                                // Don't really know why this works but this keeps the cursor at
-                                // the end of the line that's editing.
-                                app.file_lines[app.current_pos.line as usize].1 + 1
-                            } else {
-                                // If no constaints are being met, means we can freely add one
-                                // position to right.
-                                app.current_pos.char.saturating_add(1)
-                            }
+                            _ => {}
                         }
                     }
                 }

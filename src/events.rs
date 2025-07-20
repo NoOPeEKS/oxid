@@ -6,11 +6,7 @@ pub enum EventKind {
     NormalMode,
     InsertMode,
     Quit,
-    MoveCursorUp,
-    MoveCursorDown,
-    MoveCursorLeft,
-    MoveCursorRight,
-    InsertLineBelow,
+    KeyPressed(char),
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -26,11 +22,7 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                 } else {
                     match key.code {
                         KeyCode::Esc => sender.send(EventKind::NormalMode)?,
-                        KeyCode::Char('h') => sender.send(EventKind::MoveCursorLeft)?,
-                        KeyCode::Char('j') => sender.send(EventKind::MoveCursorDown)?,
-                        KeyCode::Char('k') => sender.send(EventKind::MoveCursorUp)?,
-                        KeyCode::Char('l') => sender.send(EventKind::MoveCursorRight)?,
-                        KeyCode::Char('o') => sender.send(EventKind::InsertLineBelow)?,
+                        KeyCode::Char(ch) => sender.send(EventKind::KeyPressed(ch))?,
                         _ => {}
                     }
                 }

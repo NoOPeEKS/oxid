@@ -1,3 +1,5 @@
+const NUMBAR_SPACE: u16 = 2;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
     Normal,
@@ -47,5 +49,95 @@ impl App {
 
     pub fn normal_mode(&mut self) {
         self.mode = Mode::Normal
+    }
+
+    pub fn move_cursor_left(&mut self) {
+        if self.mode == Mode::Normal {
+            self.current_pos.char = {
+                // Never let current cursor position be less than 2, because char
+                // positions 0 and 1 are occupied by line number bar's rendering.
+                if self.current_pos.char == NUMBAR_SPACE {
+                    self.current_pos.char
+                } else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1
+                {
+                    self.file_lines[self.current_pos.line as usize].1 + 1
+                } else {
+                    self.current_pos.char.saturating_sub(1)
+                }
+            }
+        }
+    }
+
+    pub fn move_cursor_down(&mut self) {
+        if self.mode == Mode::Normal {
+            // If current line is bigger than length of lines vector - 1, limit
+            // it to last line available. Must be len(vec) - 1 because lines start at
+            // 0.
+            self.current_pos.line = {
+                if self.current_pos.line >= (self.file_lines.len() - 1) as u16 {
+                    (self.file_lines.len() - 1) as u16
+                } else {
+                    self.current_pos.line.saturating_add(1)
+                }
+            };
+
+            // Edge case where when going down, the line is empty line. Then put cursor
+            // right after numbar.
+            if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
+                self.current_pos.char = NUMBAR_SPACE;
+            }
+            // If current char after going down would be bigger than the new line's
+            // length, put it on max character of the line.
+            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1 {
+                self.current_pos.char = self.file_lines[self.current_pos.line as usize].1 + 1_u16;
+            }
+        }
+    }
+
+    pub fn move_cursor_up(&mut self) {
+        if self.mode == Mode::Normal {
+            self.current_pos.line = self.current_pos.line.saturating_sub(1);
+            // Edge case where when going up the line is empty line. Then put cursor
+            // after numbar.
+            if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
+                self.current_pos.char = NUMBAR_SPACE;
+            }
+            // If current char after going up would be bigger than the new line's
+            // length, put it on max character of the line.
+            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1 {
+                self.current_pos.char = self.file_lines[self.current_pos.line as usize].1 + 1_u16;
+            }
+        }
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        if self.mode == Mode::Normal {
+            self.current_pos.char = {
+                // If current line is a newly added line, default to first editor
+                // character that starts at NUMBAR_SPACE
+                if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
+                    NUMBAR_SPACE
+                } else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1
+                {
+                    // Don't really know why this works but this keeps the cursor at
+                    // the end of the line that's editing.
+                    self.file_lines[self.current_pos.line as usize].1 + 1
+                } else {
+                    // If no constaints are being met, means we can freely add one
+                    // position to right.
+                    self.current_pos.char.saturating_add(1)
+                }
+            }
+        }
+    }
+
+    pub fn insert_line_below(&mut self) {
+        self.file_lines.insert(
+            (self.current_pos.line + 1) as usize,
+            (String::from(""), 0_u16),
+        );
+        self.current_pos.line = self.current_pos.line.saturating_add(1);
+        self.current_pos.char = NUMBAR_SPACE;
+        self.insert_mode();
     }
 }
