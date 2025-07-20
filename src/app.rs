@@ -49,12 +49,13 @@ impl App {
         // In the future, handling '\n' or '<CR>' will be tricky.
 
         let mut curr_line = self.file_lines[self.current_pos.line as usize].0.clone();
-        // Subtract NUMBAR_SPACE beacuse of the numbar taking 2 chars of render space.
-        curr_line.insert((self.current_pos.char - NUMBAR_SPACE).into(), ch);
-
-        self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
-        self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
-        self.current_pos.char = self.current_pos.char.saturating_add(1);
+        let insert_index = (self.current_pos.char - NUMBAR_SPACE) as usize;
+        if insert_index <= curr_line.len() {
+            curr_line.insert(insert_index, ch);
+            self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
+            self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
+            self.current_pos.char = self.current_pos.char.saturating_add(1);
+        }
     }
 
     pub fn remove_char(&mut self) {
@@ -82,10 +83,9 @@ impl App {
     }
 
     pub fn move_cursor_left(&mut self) {
-        if self.mode == Mode::Normal
-            && self.current_pos.char > NUMBAR_SPACE {
-                self.current_pos.char = self.current_pos.char.saturating_sub(1);
-            }
+        if self.mode == Mode::Normal && self.current_pos.char > NUMBAR_SPACE {
+            self.current_pos.char = self.current_pos.char.saturating_sub(1);
+        }
     }
 
     pub fn move_cursor_down(&mut self) {
@@ -132,21 +132,10 @@ impl App {
 
     pub fn move_cursor_right(&mut self) {
         if self.mode == Mode::Normal {
-            self.current_pos.char = {
-                // If current line is a newly added line, default to first editor
-                // character that starts at NUMBAR_SPACE
-                if self.file_lines[self.current_pos.line as usize].1 == 0_u16 {
-                    NUMBAR_SPACE
-                } else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].1
-                {
-                    // Don't really know why this works but this keeps the cursor at
-                    // the end of the line that's editing.
-                    self.file_lines[self.current_pos.line as usize].1 + 1
-                } else {
-                    // If no constaints are being met, means we can freely add one
-                    // position to right.
-                    self.current_pos.char.saturating_add(1)
-                }
+            let line_len = self.file_lines[self.current_pos.line as usize].1;
+            let max_cursor_pos = line_len + NUMBAR_SPACE;
+            if self.current_pos.char < max_cursor_pos {
+                self.current_pos.char = self.current_pos.char.saturating_add(1);
             }
         }
     }
