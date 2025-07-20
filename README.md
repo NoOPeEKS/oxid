@@ -3,6 +3,7 @@
 A simple Terminal Text Editor built in Rust for learning purposes, inspired by Vim.
 
 # TODOS
+- Add cli argument handling for choosing file.
 - Fix performance issues when inserting new characters.
 - Implement test cases.
 - Refactor file lines into structs for more readability.
