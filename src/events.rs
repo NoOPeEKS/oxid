@@ -7,7 +7,9 @@ pub enum EventKind {
     InsertMode,
     Quit,
     KeyPressed(char),
-    Backspace
+    Backspace,
+    ScrollUp,
+    ScrollDown,
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -18,6 +20,8 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     match key.code {
                         KeyCode::Char('e') => sender.send(EventKind::InsertMode)?,
                         KeyCode::Char('c') => sender.send(EventKind::Quit)?,
+                        KeyCode::Char('u') => sender.send(EventKind::ScrollUp)?,
+                        KeyCode::Char('d') => sender.send(EventKind::ScrollDown)?,
                         _ => {}
                     }
                 } else {

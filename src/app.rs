@@ -1,4 +1,5 @@
 const NUMBAR_SPACE: u16 = 2;
+const STATUSBAR_SPACE: u16 = 1;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -19,23 +20,16 @@ pub struct FileLine {
 
 pub struct App {
     pub mode: Mode,
-
     pub quitting: bool,
-
-    // Maybe convert this to a struct for easy use?
     pub file_lines: Vec<FileLine>,
-
-    #[allow(dead_code)]
-    pub size_x: u16, // Will be used later on.
-
-    #[allow(dead_code)]
-    pub size_y: u16, // Will be used later on.
-
+    pub viewport_width: u16,
+    pub viewport_height: u16,
+    pub scroll_offset: u16,
     pub current_pos: EditorPosition,
 }
 
 impl App {
-    pub fn new(file_text: String, size_x: u16, size_y: u16) -> Self {
+    pub fn new(file_text: String, viewport_width: u16, viewport_height: u16) -> Self {
         App {
             mode: Mode::Normal,
             quitting: false,
@@ -46,10 +40,56 @@ impl App {
                     length: l.len() as u16,
                 })
                 .collect(),
-            size_x: size_x - 2, // Status line is on size -1 so cursor must be on -2 max.
-            size_y: size_y - 2, // Status line is on size -1 so cursor must be on -2 max.
+            viewport_width: viewport_width - NUMBAR_SPACE,
+            viewport_height: viewport_height - STATUSBAR_SPACE,
+            scroll_offset: 0,
             current_pos: EditorPosition { line: 0, char: 2 },
         }
+    }
+
+    fn ensure_cursor_visible(&mut self) {
+        let cursor_line = self.current_pos.line;
+        let viewport_bottom = self.scroll_offset + self.viewport_height;
+
+        // If cursor is above the visible area, scroll up
+        if cursor_line < self.scroll_offset {
+            self.scroll_offset = cursor_line;
+        }
+        // If cursor is below the visible area, scroll down
+        else if cursor_line >= viewport_bottom {
+            self.scroll_offset = cursor_line.saturating_sub(self.viewport_height) + 1;
+        }
+    }
+
+    pub fn get_visible_lines(&self) -> Vec<&FileLine> {
+        let start = self.scroll_offset as usize;
+        let end = std::cmp::min(start + self.viewport_height as usize, self.file_lines.len());
+
+        self.file_lines[start..end].iter().collect()
+    }
+
+    pub fn get_viewport_cursor_pos(&self) -> EditorPosition {
+        EditorPosition {
+            line: self.current_pos.line - self.scroll_offset,
+            char: self.current_pos.char,
+        }
+    }
+
+    pub fn scroll_up(&mut self, lines: u16) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        self.current_pos.line = self.current_pos.line.saturating_sub(lines);
+    }
+
+    pub fn scroll_down(&mut self, lines: u16) {
+        let max_scroll = (self.file_lines.len() as u16).saturating_sub(self.viewport_height);
+        self.scroll_offset = std::cmp::min(self.scroll_offset + lines, max_scroll);
+        self.current_pos.line = {
+            if self.current_pos.line.saturating_add(lines) > self.file_lines.len() as u16 {
+                self.file_lines.len() as u16 - 1 // Respect the status line
+            } else {
+                self.current_pos.line.saturating_add(lines)
+            }
+        };
     }
 
     pub fn insert_char(&mut self, ch: char) {
@@ -67,6 +107,7 @@ impl App {
             self.file_lines[self.current_pos.line as usize].length = curr_line.len() as u16;
             self.current_pos.char = self.current_pos.char.saturating_add(1);
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn remove_char(&mut self) {
@@ -113,6 +154,7 @@ impl App {
                 self.current_pos.char = top_line_old_len + NUMBAR_SPACE;
             }
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn insert_mode(&mut self) {
@@ -127,6 +169,7 @@ impl App {
         if self.mode == Mode::Normal && self.current_pos.char > NUMBAR_SPACE {
             self.current_pos.char = self.current_pos.char.saturating_sub(1);
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn move_cursor_down(&mut self) {
@@ -155,6 +198,7 @@ impl App {
                     self.file_lines[self.current_pos.line as usize].length + 1_u16;
             }
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn move_cursor_up(&mut self) {
@@ -173,6 +217,7 @@ impl App {
                     self.file_lines[self.current_pos.line as usize].length + 1_u16;
             }
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn move_cursor_right(&mut self) {
@@ -183,6 +228,7 @@ impl App {
                 self.current_pos.char = self.current_pos.char.saturating_add(1);
             }
         }
+        self.ensure_cursor_visible();
     }
 
     pub fn insert_line_below(&mut self) {
@@ -196,5 +242,6 @@ impl App {
         self.current_pos.line = self.current_pos.line.saturating_add(1);
         self.current_pos.char = NUMBAR_SPACE;
         self.insert_mode();
+        self.ensure_cursor_visible();
     }
 }
