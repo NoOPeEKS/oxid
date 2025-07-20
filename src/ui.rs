@@ -43,7 +43,10 @@ pub fn ui(frame: &mut Frame, app: &App) {
 
     frame.render_widget(file_text, editor_area_chunks[0]);
 
-    let mode = format!("{:?}", app.mode);
+    let mode = format!(
+        "{:?} Mode :: {}:{}",
+        app.mode, app.current_pos.line, app.current_pos.char - 2
+    );
     let text = Text::raw(mode);
     frame.render_widget(text, editor_area_chunks[1]);
 }

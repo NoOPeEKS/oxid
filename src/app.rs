@@ -57,6 +57,28 @@ impl App {
         self.current_pos.char = self.current_pos.char.saturating_add(1);
     }
 
+    pub fn remove_char(&mut self) {
+        // Probably gonna have to optimize this later as there are many clones.
+        // TODO: Handle empty lines.
+        // TODO: Handle when deleting last char of line, otherwise it's crashing.
+        // BUG: If delete last written char, crashes.
+
+        let mut curr_line = self.file_lines[self.current_pos.line as usize].0.clone();
+        // Subtract NUMBAR_SPACE beacuse of the numbar taking 2 chars of render space.
+        let string_index: usize = (self.current_pos.char - NUMBAR_SPACE).into();
+        if !curr_line.is_empty() {
+            curr_line.remove(string_index);
+            self.file_lines[self.current_pos.line as usize].0 = curr_line.clone();
+            self.file_lines[self.current_pos.line as usize].1 = curr_line.len() as u16;
+            self.current_pos.char = self.current_pos.char.saturating_sub(1);
+        } else {
+            self.file_lines.remove(self.current_pos.line as usize);
+            if self.current_pos.line != 0 {
+                self.current_pos.line = self.current_pos.line.saturating_sub(1);
+            }
+        }
+    }
+
     pub fn insert_mode(&mut self) {
         self.mode = Mode::Insert
     }

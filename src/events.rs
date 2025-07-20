@@ -7,6 +7,7 @@ pub enum EventKind {
     InsertMode,
     Quit,
     KeyPressed(char),
+    Backspace
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -23,6 +24,7 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     match key.code {
                         KeyCode::Esc => sender.send(EventKind::NormalMode)?,
                         KeyCode::Char(ch) => sender.send(EventKind::KeyPressed(ch))?,
+                        KeyCode::Backspace => sender.send(EventKind::Backspace)?,
                         _ => {}
                     }
                 }

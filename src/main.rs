@@ -50,6 +50,11 @@ fn run(
                     } else if app.mode == Mode::Insert {
                         app.insert_char(ch);
                     }
+                },
+                EventKind::Backspace => {
+                    if app.mode == Mode::Insert {
+                        app.remove_char();
+                    }
                 }
             }
         }
