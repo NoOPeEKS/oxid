@@ -92,10 +92,10 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 
 ### 📁 **File Management**
 - [ ] **File Operations**
-  - [ ] Open arbitrary file (command line argument) [Core]
+  - [x] Open arbitrary file (command line argument) [Core]
   - [ ] Save current file [Core]
   - [ ] Save as
-  - [ ] New file creation
+  - [x] New file creation
   - [ ] Multi-file editing
 
 ### 🎨 **User Interface Enhancements**

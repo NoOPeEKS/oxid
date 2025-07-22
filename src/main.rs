@@ -7,12 +7,14 @@ use crate::events::{EventKind, handle_events};
 use crate::ui::ui;
 
 mod app;
+mod cli;
 mod events;
 mod ui;
 
 fn main() -> Result<()> {
     let mut terminal = ratatui::init();
-    let file_text = read_to_string("./testfiles/exceptions.py")?;
+    let file_path = cli::get_file_name_arg()?;
+    let file_text = read_to_string(file_path)?;
     let tsize_x = terminal.size()?.width;
     let tsize_y = terminal.size()?.height;
     let (event_sender, event_receiver) = channel::<EventKind>();
