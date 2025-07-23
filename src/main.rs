@@ -32,7 +32,7 @@ fn run(
 ) -> Result<()> {
     loop {
         terminal.draw(|frame| ui(frame, app))?;
-        if let Ok(event) = event_receiver.try_recv() {
+        if let Ok(event) = event_receiver.recv() {
             match event {
                 EventKind::Quit => app.quitting = true,
                 EventKind::NormalMode => app.normal_mode(),
