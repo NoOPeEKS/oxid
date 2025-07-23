@@ -24,6 +24,7 @@ pub struct App {
     pub viewport_width: u16,
     pub viewport_height: u16,
     pub scroll_offset: u16,
+    pub horizontal_scroll: u16,
     pub current_pos: EditorPosition,
     pub numbar_space: u16,
 }
@@ -45,6 +46,7 @@ impl App {
             viewport_width: viewport_width - numbar_space as u16,
             viewport_height: viewport_height - STATUSBAR_SPACE,
             scroll_offset: 0,
+            horizontal_scroll: 0,
             current_pos: EditorPosition {
                 line: 0,
                 char: numbar_space as u16,
@@ -57,13 +59,27 @@ impl App {
         let cursor_line = self.current_pos.line;
         let viewport_bottom = self.scroll_offset + self.viewport_height;
 
-        // If cursor is above the visible area, scroll up
+        // Vertical scrolling
         if cursor_line < self.scroll_offset {
             self.scroll_offset = cursor_line;
-        }
-        // If cursor is below the visible area, scroll down
-        else if cursor_line >= viewport_bottom {
+        } else if cursor_line >= viewport_bottom {
             self.scroll_offset = cursor_line.saturating_sub(self.viewport_height) + 1;
+        }
+
+        // Horizontal scrolling
+        let cursor_char = self.current_pos.char;
+        let viewport_right = self.horizontal_scroll + self.viewport_width + self.numbar_space;
+
+        // If cursor is to the left of visible area, scroll left
+        if cursor_char < self.horizontal_scroll + self.numbar_space {
+            self.horizontal_scroll = cursor_char.saturating_sub(self.numbar_space);
+        }
+        // If cursor is to the right of visible area, scroll right
+        else if cursor_char >= viewport_right {
+            self.horizontal_scroll = cursor_char
+                .saturating_sub(self.viewport_width)
+                .saturating_sub(self.numbar_space)
+                + 1;
         }
     }
 
@@ -74,10 +90,21 @@ impl App {
         self.file_lines[start..end].iter().collect()
     }
 
+    pub fn get_visible_line_content(&self, line: &FileLine) -> String {
+        let start_col = self.horizontal_scroll as usize;
+        if start_col >= line.content.len() {
+            return String::new();
+        }
+
+        let end_col = std::cmp::min(start_col + self.viewport_width as usize, line.content.len());
+
+        line.content[start_col..end_col].to_string()
+    }
+
     pub fn get_viewport_cursor_pos(&self) -> EditorPosition {
         EditorPosition {
             line: self.current_pos.line - self.scroll_offset,
-            char: self.current_pos.char,
+            char: self.current_pos.char.saturating_sub(self.horizontal_scroll),
         }
     }
 
@@ -198,7 +225,8 @@ impl App {
             }
             // If current char after going down would be bigger than the new line's
             // length, put it on max character of the line.
-            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
+            else if self.current_pos.char
+                > self.file_lines[self.current_pos.line as usize].length + self.numbar_space
             {
                 // -1 because lines start at 0 and length is always bigger.
                 self.current_pos.char =
@@ -218,7 +246,8 @@ impl App {
             }
             // If current char after going up would be bigger than the new line's
             // length, put it on max character of the line.
-            else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
+            else if self.current_pos.char
+                > self.file_lines[self.current_pos.line as usize].length + self.numbar_space
             {
                 // -1 because lines start at 0 and length is always bigger.
                 self.current_pos.char =

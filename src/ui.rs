@@ -37,7 +37,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     // Render only the visible lines
     let file_string: Vec<String> = visible_lines
         .iter()
-        .map(|line| line.content.to_string())
+        .map(|line| app.get_visible_line_content(line))
         .collect();
     let file_text = Paragraph::new(file_string.join("\n"));
 
@@ -55,7 +55,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         "{:?} Mode :: {}:{}",
         app.mode,
         app.current_pos.line,
-        app.current_pos.char.saturating_sub(2),
+        app.current_pos.char.saturating_sub(app.numbar_space),
     );
     let text = Text::raw(mode);
     frame.render_widget(text, editor_area_chunks[1]);
