@@ -67,6 +67,7 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
+| `Ctrl+s` | Save current file |
 
 ### Insert Mode
 | Key | Action |
@@ -80,6 +81,8 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 > **Note**: The following features are planned or currently under development. Some are top-priority core functionalities and others are features that will be implemented in future releases.
 
 ### 🔧 **Text Operations**
+- [ ] **Editing**
+    - [ ] Enter in insert mode creates new line [Core]
 - [ ] **Copy/Paste Support**
   - [ ] Visual selection mode [Core]
   - [ ] Yank (copy) operations[Core]
@@ -93,7 +96,7 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 ### 📁 **File Management**
 - [ ] **File Operations**
   - [x] Open arbitrary file (command line argument) [Core]
-  - [ ] Save current file [Core]
+  - [x] Save current file [Core]
   - [ ] Save as
   - [x] New file creation
   - [ ] Multi-file editing
