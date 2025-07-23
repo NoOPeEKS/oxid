@@ -1,4 +1,3 @@
-const NUMBAR_SPACE: u16 = 2;
 const STATUSBAR_SPACE: u16 = 1;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,10 +25,13 @@ pub struct App {
     pub viewport_height: u16,
     pub scroll_offset: u16,
     pub current_pos: EditorPosition,
+    pub numbar_space: u16,
 }
 
 impl App {
     pub fn new(file_text: String, viewport_width: u16, viewport_height: u16) -> Self {
+        let numbar_space = file_text.lines().count().to_string().len() + 1; // Leave a space
+        // between column and first char.
         App {
             mode: Mode::Normal,
             quitting: false,
@@ -40,10 +42,14 @@ impl App {
                     length: l.len() as u16,
                 })
                 .collect(),
-            viewport_width: viewport_width - NUMBAR_SPACE,
+            viewport_width: viewport_width - numbar_space as u16,
             viewport_height: viewport_height - STATUSBAR_SPACE,
             scroll_offset: 0,
-            current_pos: EditorPosition { line: 0, char: 2 },
+            current_pos: EditorPosition {
+                line: 0,
+                char: numbar_space as u16,
+            },
+            numbar_space: numbar_space as u16,
         }
     }
 
@@ -100,7 +106,7 @@ impl App {
         let mut curr_line = self.file_lines[self.current_pos.line as usize]
             .content
             .clone();
-        let insert_index = (self.current_pos.char - NUMBAR_SPACE) as usize;
+        let insert_index = (self.current_pos.char - self.numbar_space) as usize;
         if insert_index <= curr_line.len() {
             curr_line.insert(insert_index, ch);
             self.file_lines[self.current_pos.line as usize].content = curr_line.clone();
@@ -117,8 +123,8 @@ impl App {
             .clone();
 
         // If current position is and only if is bigger than the numbar, delete it.
-        if self.current_pos.char > NUMBAR_SPACE {
-            let string_index = (self.current_pos.char - 1 - NUMBAR_SPACE) as usize;
+        if self.current_pos.char > self.numbar_space {
+            let string_index = (self.current_pos.char - 1 - self.numbar_space) as usize;
             if string_index < curr_line.len() {
                 curr_line.remove(string_index);
                 self.file_lines[self.current_pos.line as usize].content = curr_line.clone();
@@ -128,7 +134,7 @@ impl App {
         }
 
         // If current pos is just after the numbar, means we're deleting entire line.
-        if self.current_pos.char == NUMBAR_SPACE && self.current_pos.line > 0 {
+        if self.current_pos.char == self.numbar_space && self.current_pos.line > 0 {
             let current_line_index = self.current_pos.line as usize;
 
             // If it's empty, should just delete the line and move cursor.
@@ -136,7 +142,7 @@ impl App {
                 self.file_lines.remove(current_line_index);
                 self.current_pos.line = self.current_pos.line.saturating_sub(1);
                 self.current_pos.char =
-                    self.file_lines[current_line_index - 1].length + NUMBAR_SPACE;
+                    self.file_lines[current_line_index - 1].length + self.numbar_space;
             }
             // If it's not empty, should join the current linestring with the previous unless it's the
             // first line.
@@ -151,7 +157,7 @@ impl App {
                 self.file_lines.remove(current_line_index);
 
                 self.current_pos.line = self.current_pos.line.saturating_sub(1);
-                self.current_pos.char = top_line_old_len + NUMBAR_SPACE;
+                self.current_pos.char = top_line_old_len + self.numbar_space;
             }
         }
         self.ensure_cursor_visible();
@@ -166,7 +172,7 @@ impl App {
     }
 
     pub fn move_cursor_left(&mut self) {
-        if self.mode == Mode::Normal && self.current_pos.char > NUMBAR_SPACE {
+        if self.mode == Mode::Normal && self.current_pos.char > self.numbar_space {
             self.current_pos.char = self.current_pos.char.saturating_sub(1);
         }
         self.ensure_cursor_visible();
@@ -188,14 +194,15 @@ impl App {
             // Edge case where when going down, the line is empty line. Then put cursor
             // right after numbar.
             if self.file_lines[self.current_pos.line as usize].length == 0_u16 {
-                self.current_pos.char = NUMBAR_SPACE;
+                self.current_pos.char = self.numbar_space;
             }
             // If current char after going down would be bigger than the new line's
             // length, put it on max character of the line.
             else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
             {
+                // -1 because lines start at 0 and length is always bigger.
                 self.current_pos.char =
-                    self.file_lines[self.current_pos.line as usize].length + 1_u16;
+                    self.file_lines[self.current_pos.line as usize].length + self.numbar_space - 1;
             }
         }
         self.ensure_cursor_visible();
@@ -207,14 +214,15 @@ impl App {
             // Edge case where when going up the line is empty line. Then put cursor
             // after numbar.
             if self.file_lines[self.current_pos.line as usize].length == 0_u16 {
-                self.current_pos.char = NUMBAR_SPACE;
+                self.current_pos.char = self.numbar_space;
             }
             // If current char after going up would be bigger than the new line's
             // length, put it on max character of the line.
             else if self.current_pos.char > self.file_lines[self.current_pos.line as usize].length
             {
+                // -1 because lines start at 0 and length is always bigger.
                 self.current_pos.char =
-                    self.file_lines[self.current_pos.line as usize].length + 1_u16;
+                    self.file_lines[self.current_pos.line as usize].length + self.numbar_space - 1;
             }
         }
         self.ensure_cursor_visible();
@@ -223,7 +231,7 @@ impl App {
     pub fn move_cursor_right(&mut self) {
         if self.mode == Mode::Normal {
             let line_len = self.file_lines[self.current_pos.line as usize].length;
-            let max_cursor_pos = line_len + NUMBAR_SPACE;
+            let max_cursor_pos = line_len + self.numbar_space;
             if self.current_pos.char < max_cursor_pos {
                 self.current_pos.char = self.current_pos.char.saturating_add(1);
             }
@@ -240,7 +248,7 @@ impl App {
             },
         );
         self.current_pos.line = self.current_pos.line.saturating_add(1);
-        self.current_pos.char = NUMBAR_SPACE;
+        self.current_pos.char = self.numbar_space;
         self.insert_mode();
         self.ensure_cursor_visible();
     }

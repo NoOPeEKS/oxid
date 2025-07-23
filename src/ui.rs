@@ -9,7 +9,7 @@ use ratatui::{
 pub fn ui(frame: &mut Frame, app: &App) {
     let terminal_area = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(2), Constraint::Fill(1)])
+        .constraints([Constraint::Length(app.numbar_space), Constraint::Fill(1)])
         .split(frame.area());
 
     // Get visible lines for the current viewport
