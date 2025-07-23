@@ -20,6 +20,7 @@ pub struct FileLine {
 pub struct App {
     pub mode: Mode,
     pub quitting: bool,
+    pub file_path: String,
     pub file_lines: Vec<FileLine>,
     pub viewport_width: u16,
     pub viewport_height: u16,
@@ -30,12 +31,18 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(file_text: String, viewport_width: u16, viewport_height: u16) -> Self {
+    pub fn new(
+        file_path: String,
+        file_text: String,
+        viewport_width: u16,
+        viewport_height: u16,
+    ) -> Self {
         let numbar_space = file_text.lines().count().to_string().len() + 1; // Leave a space
         // between column and first char.
         App {
             mode: Mode::Normal,
             quitting: false,
+            file_path,
             file_lines: file_text
                 .lines()
                 .map(|l| FileLine {
@@ -53,6 +60,16 @@ impl App {
             },
             numbar_space: numbar_space as u16,
         }
+    }
+
+    pub fn save_file(&self) -> anyhow::Result<()> {
+        let lines_vec: Vec<_> = self
+            .file_lines
+            .iter()
+            .map(|fl| fl.content.clone())
+            .collect();
+        std::fs::write(self.file_path.clone(), lines_vec.join("\n"))?;
+        Ok(())
     }
 
     fn ensure_cursor_visible(&mut self) {

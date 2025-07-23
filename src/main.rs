@@ -14,11 +14,11 @@ mod ui;
 fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     let file_path = cli::get_file_name_arg()?;
-    let file_text = read_to_string(file_path)?;
+    let file_text = read_to_string(file_path.clone())?;
     let tsize_x = terminal.size()?.width;
     let tsize_y = terminal.size()?.height;
     let (event_sender, event_receiver) = channel::<EventKind>();
-    let mut app = App::new(file_text, tsize_x, tsize_y);
+    let mut app = App::new(file_path, file_text, tsize_x, tsize_y);
     std::thread::spawn(move || handle_events(event_sender));
     let result = run(event_receiver, &mut terminal, &mut app);
     ratatui::restore();
@@ -34,6 +34,10 @@ fn run(
         terminal.draw(|frame| ui(frame, app))?;
         if let Ok(event) = event_receiver.recv() {
             match event {
+                EventKind::SaveFile => {
+                    app.save_file()?;
+                    app.normal_mode();
+                }
                 EventKind::Quit => app.quitting = true,
                 EventKind::NormalMode => app.normal_mode(),
                 EventKind::InsertMode => app.insert_mode(),

@@ -10,6 +10,7 @@ pub enum EventKind {
     Backspace,
     ScrollUp,
     ScrollDown,
+    SaveFile,
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -21,6 +22,7 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     KeyCode::Char('c') => sender.send(EventKind::Quit)?,
                     KeyCode::Char('u') => sender.send(EventKind::ScrollUp)?,
                     KeyCode::Char('d') => sender.send(EventKind::ScrollDown)?,
+                    KeyCode::Char('s') => sender.send(EventKind::SaveFile)?,
                     _ => {}
                 }
             } else {
