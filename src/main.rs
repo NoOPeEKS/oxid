@@ -40,7 +40,6 @@ fn run(
                 }
                 EventKind::Quit => app.quitting = true,
                 EventKind::NormalMode => app.normal_mode(),
-                EventKind::InsertMode => app.insert_mode(),
                 EventKind::ScrollUp => app.scroll_up(5),
                 EventKind::ScrollDown => app.scroll_down(5),
                 EventKind::KeyPressed(ch) => {
@@ -51,6 +50,7 @@ fn run(
                             'k' => app.move_cursor_up(),
                             'l' => app.move_cursor_right(),
                             'o' => app.insert_line_below(),
+                            'i' => app.insert_mode(),
                             _ => {}
                         }
                     } else if app.mode == Mode::Insert {

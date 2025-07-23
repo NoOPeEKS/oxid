@@ -63,7 +63,7 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 | `k` | Move cursor up |
 | `l` | Move cursor right |
 | `o` | Insert line below and enter insert mode |
-| `Ctrl+e` | Enter insert mode |
+| `i` | Enter insert mode |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |

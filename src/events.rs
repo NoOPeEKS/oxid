@@ -4,7 +4,6 @@ use std::sync::mpsc::Sender;
 
 pub enum EventKind {
     NormalMode,
-    InsertMode,
     Quit,
     KeyPressed(char),
     Backspace,
@@ -18,7 +17,6 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
         if let event::Event::Key(key) = event::read()? {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
-                    KeyCode::Char('e') => sender.send(EventKind::InsertMode)?,
                     KeyCode::Char('c') => sender.send(EventKind::Quit)?,
                     KeyCode::Char('u') => sender.send(EventKind::ScrollUp)?,
                     KeyCode::Char('d') => sender.send(EventKind::ScrollDown)?,
