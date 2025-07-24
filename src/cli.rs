@@ -22,7 +22,9 @@ fn is_file(path: &Path) -> bool {
         false
     } else if path.exists() && path.is_file() {
         true
-    } else { !(path.exists() && path.is_dir()) }
+    } else {
+        !(path.exists() && path.is_dir())
+    }
 }
 
 pub fn get_file_name_arg() -> Result<String> {
