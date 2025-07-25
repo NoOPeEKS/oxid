@@ -138,6 +138,43 @@ impl Buffer {
         };
     }
 
+    pub fn enter_key(&mut self) {
+        let curr_line = self.file_lines[self.current_position.line].clone();
+        let current_character = self.current_position.character;
+        // If cursor is at the end of the line, just include empty line below.
+        if current_character - self.numbar_space == curr_line.length {
+            self.file_lines.insert(
+                self.current_position.line + 1,
+                FileLine {
+                    content: String::from(""),
+                    length: 0,
+                },
+            );
+            self.current_position.line = self.current_position.line.saturating_add(1);
+            self.current_position.character = self.numbar_space;
+        } else if current_character >= self.numbar_space && current_character < curr_line.length {
+            // If cursor is anywhere between the line, move cursor + forward to next line.
+            // So basically, current line should be line[0..cursor] and next line should be
+            // line[cursor..]
+            self.file_lines[self.current_position.line].content =
+                curr_line.content[0..current_character - self.numbar_space].to_string();
+
+            let new_line_content =
+                curr_line.content[current_character - self.numbar_space..].to_string();
+
+            self.file_lines.insert(
+                self.current_position.line + 1,
+                FileLine {
+                    content: new_line_content.clone(),
+                    length: new_line_content.len(),
+                },
+            );
+            self.current_position.line = self.current_position.line.saturating_add(1);
+            self.current_position.character = self.numbar_space;
+        }
+        self.ensure_cursor_visible();
+    }
+
     pub fn insert_char(&mut self, ch: char) {
         // TODO: Need to handle edge case where line is new line.
         // Probably gonna have to optimize this later as there are many clones.

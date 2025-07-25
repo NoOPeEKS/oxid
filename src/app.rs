@@ -72,6 +72,11 @@ impl App {
                             self.buffers[0].remove_char();
                         }
                     }
+                    EventKind::EnterKey => {
+                        if self.mode == Mode::Insert {
+                            self.buffers[0].enter_key();
+                        }
+                    },
                 }
             }
 

@@ -10,6 +10,7 @@ pub enum EventKind {
     ScrollUp,
     ScrollDown,
     SaveFile,
+    EnterKey,
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -28,6 +29,7 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     KeyCode::Esc => sender.send(EventKind::NormalMode)?,
                     KeyCode::Char(ch) => sender.send(EventKind::KeyPressed(ch))?,
                     KeyCode::Backspace => sender.send(EventKind::Backspace)?,
+                    KeyCode::Enter => sender.send(EventKind::EnterKey)?,
                     _ => {}
                 }
             }
