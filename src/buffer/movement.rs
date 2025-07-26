@@ -35,6 +35,12 @@ impl Buffer {
     pub fn scroll_up(&mut self, lines: usize) {
         self.vertical_scroll = self.vertical_scroll.saturating_sub(lines);
         self.current_position.line = self.current_position.line.saturating_sub(lines);
+        if self.file_lines[self.current_position.line].length
+            < self.current_position.character - self.numbar_space
+        {
+            self.current_position.character =
+                self.file_lines[self.current_position.line].length + self.numbar_space;
+        }
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
@@ -47,6 +53,12 @@ impl Buffer {
                 self.current_position.line.saturating_add(lines)
             }
         };
+        if self.file_lines[self.current_position.line].length
+            < self.current_position.character - self.numbar_space
+        {
+            self.current_position.character =
+                self.file_lines[self.current_position.line].length + self.numbar_space;
+        }
     }
 
     pub fn move_cursor_left(&mut self) {
