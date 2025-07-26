@@ -1,5 +1,12 @@
 const STATUSBAR_SPACE: usize = 1;
 
+#[derive(PartialEq)]
+enum CharType {
+    Word,
+    Punctuation,
+    Whitespace,
+}
+
 pub struct BufferPosition {
     pub line: usize,
     pub character: usize,
@@ -48,6 +55,93 @@ impl Buffer {
                 character: numbar_space,
             },
             numbar_space,
+        }
+    }
+
+    fn get_next_word(&self) -> Option<BufferPosition> {
+        let mut line_idx = self.current_position.line;
+        let char_idx = self.current_position.character - self.numbar_space;
+
+        let char_type = |c: char| -> CharType {
+            if c.is_whitespace() {
+                CharType::Whitespace
+            } else if c.is_alphanumeric() || c == '_' {
+                CharType::Word
+            } else {
+                CharType::Punctuation
+            }
+        };
+
+        // Try first to move within current line
+        if line_idx < self.file_lines.len() {
+            let file_line = &self.file_lines[line_idx];
+            let line_content = file_line.content.clone();
+            let chars: Vec<char> = line_content.chars().collect();
+
+            if char_idx < chars.len() {
+                let current_char_type = char_type(chars[char_idx]);
+                let mut i = char_idx;
+
+                // Skip characters of the same type as current if not whitespace
+                if current_char_type != CharType::Whitespace {
+                    while i < chars.len() && char_type(chars[i]) == current_char_type {
+                        i += 1;
+                    }
+                }
+
+                // Skip whitespaces on current line
+                while i < chars.len() && chars[i].is_whitespace() {
+                    i += 1;
+                }
+
+                // If non-whitespace character on current line, return its position.
+                if i < chars.len() {
+                    return Some(BufferPosition {
+                        line: line_idx,
+                        character: i + self.numbar_space,
+                    });
+                }
+            }
+        }
+
+        // Move to next line
+        line_idx += 1;
+        if line_idx < self.file_lines.len() {
+            let file_line = &self.file_lines[line_idx];
+            let line_content = file_line.content.clone();
+            let chars: Vec<char> = line_content.chars().collect();
+
+            // If empty line, move there
+            if chars.is_empty() {
+                return Some(BufferPosition {
+                    line: line_idx,
+                    character: self.numbar_space,
+                });
+            }
+
+            // If it's a line with content, find first non-whitespace character
+            for (i, &c) in chars.iter().enumerate() {
+                if !c.is_whitespace() {
+                    return Some(BufferPosition {
+                        line: line_idx,
+                        character: i + self.numbar_space,
+                    });
+                }
+            }
+
+            // If it's a line with only whitespace, stop at beginning of line
+            return Some(BufferPosition {
+                line: line_idx,
+                character: self.numbar_space,
+            });
+        }
+        None
+    }
+
+    pub fn move_to_next_word(&mut self) {
+        // Only move to next word if actually some new position is found.
+        if let Some(position) = self.get_next_word() {
+            self.current_position = position;
         }
     }
 
