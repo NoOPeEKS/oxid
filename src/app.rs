@@ -58,7 +58,7 @@ impl App {
                                 'l' => self.buffers[0].move_cursor_right(),
                                 'w' => self.buffers[0].move_to_next_word(),
                                 'b' => self.buffers[0].move_to_previous_word(),
-                                // 'e' => self.buffers[0].move_to_end_word(),
+                                'e' => self.buffers[0].move_to_end_of_word(),
                                 'i' => self.insert_mode(),
                                 'o' => {
                                     self.buffers[0].insert_line_below();

@@ -1,20 +1,18 @@
 use super::core::Buffer;
 use super::types::{BufferPosition, CharType, FileLine};
 
-fn char_type(c: char) -> CharType {
-    if c.is_whitespace() {
-        CharType::Whitespace
-    } else if c.is_alphanumeric() || c == '_' {
-        CharType::Word
-    } else {
-        CharType::Punctuation
-    }
-}
-
 impl Buffer {
+    pub fn move_to_end_of_word(&mut self) {
+        if let Some(position) = self.get_end_of_word() {
+            self.current_position = position;
+            self.ensure_cursor_visible();
+        }
+    }
+
     pub fn move_to_previous_word(&mut self) {
         if let Some(position) = self.get_previous_word() {
             self.current_position = position;
+            self.ensure_cursor_visible();
         }
     }
 
@@ -22,6 +20,7 @@ impl Buffer {
         // Only move to next word if actually some new position is found.
         if let Some(position) = self.get_next_word() {
             self.current_position = position;
+            self.ensure_cursor_visible();
         }
     }
 
@@ -124,177 +123,269 @@ impl Buffer {
         );
         self.current_position.line = self.current_position.line.saturating_add(1);
         self.current_position.character = self.numbar_space;
-        // self.insert_mode();
         self.ensure_cursor_visible();
     }
 
     fn get_next_word(&self) -> Option<BufferPosition> {
-        let mut line_idx = self.current_position.line;
-        let char_idx = self.current_position.character - self.numbar_space;
+        let line_idx = self.current_position.line;
+        let char_idx = self
+            .current_position
+            .character
+            .saturating_sub(self.numbar_space);
 
-        // Try first to move within current line
-        if line_idx < self.file_lines.len() {
-            let file_line = &self.file_lines[line_idx];
-            let line_content = file_line.content.clone();
-            let chars: Vec<char> = line_content.chars().collect();
-
+        // Try current line first
+        if let Some(chars) = self.get_line_chars(line_idx) {
             if char_idx < chars.len() {
-                let current_char_type = char_type(chars[char_idx]);
-                let mut i = char_idx;
+                let current_type = CharType::from_char(chars[char_idx]);
+                let mut pos = char_idx;
 
-                // Skip characters of the same type as current if not whitespace
-                if current_char_type != CharType::Whitespace {
-                    while i < chars.len() && char_type(chars[i]) == current_char_type {
-                        i += 1;
+                // Skip characters of same type if not whitespace
+                if current_type != CharType::Whitespace {
+                    while pos < chars.len() && CharType::from_char(chars[pos]) == current_type {
+                        pos += 1;
                     }
                 }
 
-                // Skip whitespaces on current line
-                while i < chars.len() && chars[i].is_whitespace() {
-                    i += 1;
-                }
+                // Skip whitespace
+                pos = self.skip_whitespace_forward(&chars, pos);
 
-                // If non-whitespace character on current line, return its position.
-                if i < chars.len() {
+                // Return position if we found non-whitespace
+                if pos < chars.len() {
                     return Some(BufferPosition {
                         line: line_idx,
-                        character: i + self.numbar_space,
+                        character: pos + self.numbar_space,
                     });
                 }
             }
         }
 
-        // Move to next line
-        line_idx += 1;
-        if line_idx < self.file_lines.len() {
-            let file_line = &self.file_lines[line_idx];
-            let line_content = file_line.content.clone();
-            let chars: Vec<char> = line_content.chars().collect();
+        // Try next lines
+        for next_line_idx in (line_idx + 1)..self.file_lines.len() {
+            if let Some(chars) = self.get_line_chars(next_line_idx) {
+                if chars.is_empty() {
+                    return Some(BufferPosition {
+                        line: next_line_idx,
+                        character: self.numbar_space,
+                    });
+                }
 
-            // If empty line, move there
-            if chars.is_empty() {
+                // Find first non-whitespace
+                let pos = self.skip_whitespace_forward(&chars, 0);
+                if pos < chars.len() {
+                    return Some(BufferPosition {
+                        line: next_line_idx,
+                        character: pos + self.numbar_space,
+                    });
+                }
+
+                // Line with only whitespace
                 return Some(BufferPosition {
-                    line: line_idx,
+                    line: next_line_idx,
                     character: self.numbar_space,
                 });
             }
-
-            // If it's a line with content, find first non-whitespace character
-            for (i, &c) in chars.iter().enumerate() {
-                if !c.is_whitespace() {
-                    return Some(BufferPosition {
-                        line: line_idx,
-                        character: i + self.numbar_space,
-                    });
-                }
-            }
-
-            // If it's a line with only whitespace, stop at beginning of line
-            return Some(BufferPosition {
-                line: line_idx,
-                character: self.numbar_space,
-            });
         }
+
         None
     }
 
     fn get_previous_word(&self) -> Option<BufferPosition> {
-        let mut line_idx = self.current_position.line;
-        let char_idx = self.current_position.character - self.numbar_space;
+        let line_idx = self.current_position.line;
+        let char_idx = self
+            .current_position
+            .character
+            .saturating_sub(self.numbar_space);
 
-        // Try to move within current line first
-        if line_idx < self.file_lines.len() {
-            let file_line = &self.file_lines[line_idx];
-            let line_content = file_line.content.clone();
-            let chars: Vec<char> = line_content.chars().collect();
-
+        // Try current line first
+        if let Some(chars) = self.get_line_chars(line_idx) {
             if char_idx > 0 {
-                let mut i = char_idx - 1;
+                let mut pos = char_idx - 1;
 
-                // Skip whitespace first
-                while i > 0 && chars[i].is_whitespace() {
-                    if i == 0 {
-                        break;
+                // Skip whitespace backward
+                pos = self.skip_whitespace_backward(&chars, pos);
+
+                // If we found non-whitespace, find start of word
+                if pos < chars.len() && !chars[pos].is_whitespace() {
+                    if let Some(word_start) = self.find_word_start(&chars, pos) {
+                        return Some(BufferPosition {
+                            line: line_idx,
+                            character: word_start + self.numbar_space,
+                        });
                     }
-                    i -= 1;
+                }
+            }
+        }
+
+        // Try previous lines
+        for prev_line_idx in (0..line_idx).rev() {
+            if let Some(chars) = self.get_line_chars(prev_line_idx) {
+                if chars.is_empty() {
+                    return Some(BufferPosition {
+                        line: prev_line_idx,
+                        character: self.numbar_space,
+                    });
                 }
 
-                // If we're at position 0 and it's whitespace, handle it
-                if i == 0 && chars[i].is_whitespace() {
-                    // Continue to previous line logic
+                // Start from end and skip trailing whitespace
+                let mut pos = chars.len() - 1;
+                pos = self.skip_whitespace_backward(&chars, pos);
+
+                if pos < chars.len() && !chars[pos].is_whitespace() {
+                    if let Some(word_start) = self.find_word_start(&chars, pos) {
+                        return Some(BufferPosition {
+                            line: prev_line_idx,
+                            character: word_start + self.numbar_space,
+                        });
+                    }
+                }
+
+                // Line with only whitespace
+                return Some(BufferPosition {
+                    line: prev_line_idx,
+                    character: self.numbar_space,
+                });
+            }
+        }
+
+        None
+    }
+
+    fn get_end_of_word(&self) -> Option<BufferPosition> {
+        let line_idx = self.current_position.line;
+        let char_idx = self
+            .current_position
+            .character
+            .saturating_sub(self.numbar_space);
+
+        // Try current line first
+        if let Some(chars) = self.get_line_chars(line_idx) {
+            if char_idx < chars.len() {
+                let current_type = CharType::from_char(chars[char_idx]);
+
+                if current_type == CharType::Whitespace {
+                    // Skip whitespace and find end of next word
+                    let pos = self.skip_whitespace_forward(&chars, char_idx);
+                    if let Some(word_end) = self.find_word_end(&chars, pos) {
+                        return Some(BufferPosition {
+                            line: line_idx,
+                            character: word_end + self.numbar_space,
+                        });
+                    }
+                } else if self.is_at_word_end(&chars, char_idx) {
+                    // At word end, find next word's end
+                    let mut pos = char_idx + 1;
+                    pos = self.skip_whitespace_forward(&chars, pos);
+
+                    if let Some(word_end) = self.find_word_end(&chars, pos) {
+                        return Some(BufferPosition {
+                            line: line_idx,
+                            character: word_end + self.numbar_space,
+                        });
+                    }
                 } else {
-                    // If its non-whitespace character, find the beginning of word.
-                    let current_char_type = char_type(chars[i]);
-
-                    // Move backwards while same character type
-                    while i > 0 && char_type(chars[i]) == current_char_type {
-                        i -= 1;
+                    // In middle of word, find end of current word
+                    if let Some(word_end) = self.find_word_end(&chars, char_idx) {
+                        return Some(BufferPosition {
+                            line: line_idx,
+                            character: word_end + self.numbar_space,
+                        });
                     }
+                }
+            }
+        }
 
-                    // If we stopped because character type changed (not because we hit start)
-                    if (i > 0 || char_type(chars[i]) != current_char_type)
-                        && char_type(chars[i]) != current_char_type
-                    {
-                        i += 1; // Move forward to first char of the word we want
-                    }
+        // Try next lines
+        for next_line_idx in (line_idx + 1)..self.file_lines.len() {
+            if let Some(chars) = self.get_line_chars(next_line_idx) {
+                if chars.is_empty() {
+                    continue;
+                }
 
+                let pos = self.skip_whitespace_forward(&chars, 0);
+                if let Some(word_end) = self.find_word_end(&chars, pos) {
                     return Some(BufferPosition {
-                        line: line_idx,
-                        character: i + self.numbar_space,
+                        line: next_line_idx,
+                        character: word_end + self.numbar_space,
                     });
                 }
             }
         }
 
-        // If not able to move on line, move to previous line
-        if line_idx > 0 {
-            line_idx -= 1;
-            let file_line = &self.file_lines[line_idx];
-            let line_content = file_line.content.clone();
-            let chars: Vec<char> = line_content.chars().collect();
+        None
+    }
 
-            if chars.is_empty() {
-                return Some(BufferPosition {
-                    line: line_idx,
-                    character: self.numbar_space,
-                });
-            }
+    fn get_line_chars(&self, line_idx: usize) -> Option<Vec<char>> {
+        self.file_lines
+            .get(line_idx)
+            .map(|line| line.content.chars().collect())
+    }
 
-            // Start from end of line and work backwards
-            let mut i = chars.len() - 1;
+    fn skip_whitespace_forward(&self, chars: &[char], mut pos: usize) -> usize {
+        while pos < chars.len() && chars[pos].is_whitespace() {
+            pos += 1;
+        }
+        pos
+    }
 
-            // Skip trailing whitespace
-            while i > 0 && chars[i].is_whitespace() {
-                i -= 1;
-            }
+    fn skip_whitespace_backward(&self, chars: &[char], mut pos: usize) -> usize {
+        while pos > 0 && chars[pos].is_whitespace() {
+            pos -= 1;
+        }
+        pos
+    }
 
-            // If entire line is whitespace
-            if i == 0 && chars[i].is_whitespace() {
-                return Some(BufferPosition {
-                    line: line_idx,
-                    character: self.numbar_space,
-                });
-            }
-
-            // Find beginning of the word at end of line
-            let current_char_type = char_type(chars[i]);
-            while i > 0 && char_type(chars[i]) == current_char_type {
-                i -= 1;
-            }
-
-            // Adjust position to start of word
-            if (i > 0 || char_type(chars[i]) != current_char_type)
-                && char_type(chars[i]) != current_char_type
-            {
-                i += 1;
-            }
-
-            return Some(BufferPosition {
-                line: line_idx,
-                character: i + self.numbar_space,
-            });
+    fn find_word_end(&self, chars: &[char], start: usize) -> Option<usize> {
+        if start >= chars.len() {
+            return None;
         }
 
-        None
+        let char_type = CharType::from_char(chars[start]);
+        if char_type == CharType::Whitespace {
+            return None;
+        }
+
+        let mut pos = start;
+        while pos < chars.len() && CharType::from_char(chars[pos]) == char_type {
+            pos += 1;
+        }
+        Some(pos - 1)
+    }
+
+    fn find_word_start(&self, chars: &[char], start: usize) -> Option<usize> {
+        if start >= chars.len() {
+            return None;
+        }
+
+        let char_type = CharType::from_char(chars[start]);
+        if char_type == CharType::Whitespace {
+            return None;
+        }
+
+        let mut pos = start;
+        while pos > 0 && CharType::from_char(chars[pos]) == char_type {
+            pos -= 1;
+        }
+
+        // Adjust if we stopped due to character type change
+        if (pos > 0 || CharType::from_char(chars[pos]) != char_type)
+            && CharType::from_char(chars[pos]) != char_type
+        {
+            pos += 1;
+        }
+        Some(pos)
+    }
+
+    fn is_at_word_end(&self, chars: &[char], pos: usize) -> bool {
+        if pos >= chars.len() {
+            return false;
+        }
+
+        let current_type = CharType::from_char(chars[pos]);
+        if current_type == CharType::Whitespace {
+            return false;
+        }
+
+        // At end if next char is different type or we're at line end
+        pos + 1 >= chars.len() || CharType::from_char(chars[pos + 1]) != current_type
     }
 }
