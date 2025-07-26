@@ -51,7 +51,7 @@ cargo build --release
 ```bash
 cargo run
 ```
-As of now, the editor will open the test file `./testfiles/exceptions.py` by default.
+As of now, the editor will either open an existing file or create a new one. It does not currently support multiple buffers nor opening directories.
 
 ## 🎮 Key Bindings
 
@@ -62,18 +62,26 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 | `j` | Move cursor down |
 | `k` | Move cursor up |
 | `l` | Move cursor right |
+| `w` | Move one word forward |
+| `b` | Move one word backwards |
+| `e` | Move to the end of the word |
+| `0` | Move to the start of the line |
+| `$` | Move to the end of the line |
 | `o` | Insert line below and enter insert mode |
 | `i` | Enter insert mode |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
 | `Ctrl+s` | Save current file |
+| `Shift+i` | Insert at start of line |
+| `Shift+a` | Append at end of line |
 
 ### Insert Mode
 | Key | Action |
 |-----|--------|
 | `Esc` | Return to normal mode |
 | `Backspace` | Delete character/merge lines |
+| `Enter` | Insert a new line |
 | `Any character` | Insert character |
 
 ## 📋 Features in Progress
@@ -81,8 +89,6 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
 > **Note**: The following features are planned or currently under development. Some are top-priority core functionalities and others are features that will be implemented in future releases.
 
 ### 🔧 **Text Operations**
-- [ ] **Editing**
-    - [ ] Enter in insert mode creates new line [Core]
 - [ ] **Copy/Paste Support**
   - [ ] Visual selection mode [Core]
   - [ ] Yank (copy) operations[Core]
@@ -90,7 +96,7 @@ As of now, the editor will open the test file `./testfiles/exceptions.py` by def
   - [ ] System clipboard integration [Core]
 
 - [ ] **Advanced Editing**
-  - [ ] Word-based navigation (`w`, `b`, `e`) [Core]
+  - [x] Word-based navigation (`w`, `b`, `e`) [Core]
   - [ ] Undo/Redo functionality
 
 ### 📁 **File Management**
