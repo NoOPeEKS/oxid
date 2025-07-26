@@ -51,6 +51,14 @@ impl Buffer {
         }
     }
 
+    pub fn move_cursor_start_line(&mut self) {
+        self.current_position.character = self.numbar_space;
+    }
+    pub fn move_cursor_end_line(&mut self) {
+        self.current_position.character =
+            self.file_lines[self.current_position.line].length + self.numbar_space;
+    }
+
     pub fn save_file(&self) -> anyhow::Result<()> {
         let lines_vec: Vec<_> = self
             .file_lines
@@ -218,7 +226,7 @@ impl Buffer {
                     self.file_lines[current_line_index - 1].length + self.numbar_space;
             }
             // If it's not empty, should join the current linestring with the previous unless it's the
-            // first line.
+            // first line, and move cursor to last char of previous line.
             else {
                 let line = self.file_lines[current_line_index].clone();
                 let mut top_line = self.file_lines[current_line_index - 1].clone();

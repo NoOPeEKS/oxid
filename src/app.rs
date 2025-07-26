@@ -67,6 +67,25 @@ impl App {
                             self.buffers[0].insert_char(ch);
                         }
                     }
+                    EventKind::ShiftedKey(ch) => {
+                        if self.mode == Mode::Normal {
+                            match ch {
+                                'I' => {
+                                    self.buffers[0].move_cursor_start_line();
+                                    self.insert_mode();
+                                }
+                                'A' => {
+                                    self.buffers[0].move_cursor_end_line();
+                                    self.insert_mode();
+                                }
+                                _ => {}
+                            }
+                        } else if self.mode == Mode::Insert
+                            && (ch.is_alphanumeric() || ch.is_ascii_punctuation())
+                        {
+                            self.buffers[0].insert_char(ch);
+                        }
+                    }
                     EventKind::Backspace => {
                         if self.mode == Mode::Insert {
                             self.buffers[0].remove_char();
@@ -76,7 +95,7 @@ impl App {
                         if self.mode == Mode::Insert {
                             self.buffers[0].enter_key();
                         }
-                    },
+                    }
                 }
             }
 

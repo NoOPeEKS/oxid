@@ -11,6 +11,7 @@ pub enum EventKind {
     ScrollDown,
     SaveFile,
     EnterKey,
+    ShiftedKey(char),
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -23,6 +24,10 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     KeyCode::Char('d') => sender.send(EventKind::ScrollDown)?,
                     KeyCode::Char('s') => sender.send(EventKind::SaveFile)?,
                     _ => {}
+                }
+            } else if key.modifiers.contains(KeyModifiers::SHIFT) {
+                if let KeyCode::Char(ch) = key.code {
+                    sender.send(EventKind::ShiftedKey(ch))?;
                 }
             } else {
                 match key.code {
