@@ -61,6 +61,8 @@ impl App {
                                     self.buffers[0].insert_line_below();
                                     self.insert_mode();
                                 }
+                                '0' => self.buffers[0].move_cursor_start_line(),
+                                '$' => self.buffers[0].move_cursor_end_line(),
                                 _ => {}
                             }
                         } else if self.mode == Mode::Insert {
