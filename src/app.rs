@@ -56,20 +56,49 @@ impl App {
                                 'j' => self.buffers[0].move_cursor_down(),
                                 'k' => self.buffers[0].move_cursor_up(),
                                 'l' => self.buffers[0].move_cursor_right(),
+                                'w' => self.buffers[0].move_to_next_word(),
+                                'b' => self.buffers[0].move_to_previous_word(),
+                                'e' => self.buffers[0].move_to_end_of_word(),
                                 'i' => self.insert_mode(),
                                 'o' => {
                                     self.buffers[0].insert_line_below();
                                     self.insert_mode();
                                 }
+                                '0' => self.buffers[0].move_cursor_start_line(),
+                                '$' => self.buffers[0].move_cursor_end_line(),
                                 _ => {}
                             }
                         } else if self.mode == Mode::Insert {
                             self.buffers[0].insert_char(ch);
                         }
                     }
+                    EventKind::ShiftedKey(ch) => {
+                        if self.mode == Mode::Normal {
+                            match ch {
+                                'I' => {
+                                    self.buffers[0].move_cursor_start_line();
+                                    self.insert_mode();
+                                }
+                                'A' => {
+                                    self.buffers[0].move_cursor_end_line();
+                                    self.insert_mode();
+                                }
+                                _ => {}
+                            }
+                        } else if self.mode == Mode::Insert
+                            && (ch.is_alphanumeric() || ch.is_ascii_punctuation())
+                        {
+                            self.buffers[0].insert_char(ch);
+                        }
+                    }
                     EventKind::Backspace => {
                         if self.mode == Mode::Insert {
                             self.buffers[0].remove_char();
+                        }
+                    }
+                    EventKind::EnterKey => {
+                        if self.mode == Mode::Insert {
+                            self.buffers[0].enter_key();
                         }
                     }
                 }
