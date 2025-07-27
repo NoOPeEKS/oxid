@@ -17,6 +17,7 @@ impl CharType {
     }
 }
 
+#[derive(Clone)]
 pub struct BufferPosition {
     pub line: usize,
     pub character: usize,
@@ -26,4 +27,9 @@ pub struct BufferPosition {
 pub struct FileLine {
     pub content: String,
     pub length: usize,
+}
+
+pub struct Selection {
+    pub start: BufferPosition,
+    pub end: BufferPosition,
 }

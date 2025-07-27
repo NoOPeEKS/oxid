@@ -1,4 +1,5 @@
 use crate::buffer::Buffer;
+use crate::buffer::types::Selection;
 use crate::events::EventKind;
 use crate::ui::ui;
 use std::sync::mpsc::Receiver;
@@ -7,6 +8,7 @@ use std::sync::mpsc::Receiver;
 pub enum Mode {
     Normal,
     Insert,
+    Visual,
 }
 
 pub struct App {
@@ -32,6 +34,19 @@ impl App {
         self.mode = Mode::Normal
     }
 
+    pub fn visual_mode(&mut self) {
+        if self.mode == Mode::Normal {
+            // First time on visual, so start saving selection.
+            self.mode = Mode::Visual;
+            self.buffers[0].selection = Some(Selection {
+                start: self.buffers[0].current_position.clone(),
+                end: self.buffers[0].current_position.clone(),
+            });
+        } else {
+            self.mode = Mode::Normal;
+        }
+    }
+
     pub fn run(
         &mut self,
         event_receiver: Receiver<EventKind>,
@@ -50,15 +65,87 @@ impl App {
                     EventKind::ScrollUp => self.buffers[0].scroll_up(5),
                     EventKind::ScrollDown => self.buffers[0].scroll_down(5),
                     EventKind::KeyPressed(ch) => {
-                        if self.mode == Mode::Normal {
+                        if self.mode == Mode::Normal || self.mode == Mode::Visual {
+                            let vis = self.mode == Mode::Visual;
                             match ch {
-                                'h' => self.buffers[0].move_cursor_left(),
-                                'j' => self.buffers[0].move_cursor_down(),
-                                'k' => self.buffers[0].move_cursor_up(),
-                                'l' => self.buffers[0].move_cursor_right(),
-                                'w' => self.buffers[0].move_to_next_word(),
-                                'b' => self.buffers[0].move_to_previous_word(),
-                                'e' => self.buffers[0].move_to_end_of_word(),
+                                'v' => self.visual_mode(),
+                                'h' => {
+                                    self.buffers[0].move_cursor_left();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'j' => {
+                                    self.buffers[0].move_cursor_down();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'k' => {
+                                    self.buffers[0].move_cursor_up();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'l' => {
+                                    self.buffers[0].move_cursor_right();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'w' => {
+                                    self.buffers[0].move_to_next_word();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'b' => {
+                                    self.buffers[0].move_to_previous_word();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                'e' => {
+                                    self.buffers[0].move_to_end_of_word();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
                                 'i' => self.insert_mode(),
                                 'o' => {
                                     self.buffers[0].insert_line_below();
