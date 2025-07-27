@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Position},
     prelude::Stylize,
     style::Style,
-    text::Text,
+    text::{Line, Span, Text},
     widgets::Paragraph,
 };
 
@@ -40,12 +40,61 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .constraints([Constraint::Min(1), Constraint::Length(1)])
         .split(editor_area);
 
-    // Render only the visible lines
-    let file_string: Vec<String> = visible_lines
-        .iter()
-        .map(|line| app.buffers[0].get_visible_line_content(line))
-        .collect();
-    let file_text = Paragraph::new(file_string.join("\n"));
+    // // Render only the visible lines
+    // let file_string: Vec<String> = visible_lines
+    //     .iter()
+    //     .map(|line| app.buffers[0].get_visible_line_content(line))
+    //     .collect();
+    // let file_text = Paragraph::new(file_string.join("\n"));
+
+    let selection = &app.buffers[0].selection;
+    let mut styled_lines: Vec<Line> = Vec::new();
+    let start_line = app.buffers[0].vertical_scroll;
+    let numbar_space = app.buffers[0].numbar_space;
+
+    for (i, visible_line) in visible_lines.iter().enumerate() {
+        let line_content = app.buffers[0].get_visible_line_content(visible_line);
+        let mut spans: Vec<Span> = Vec::new();
+
+        for (char_idx, ch) in line_content.chars().enumerate() {
+            let abs_line = start_line + i;
+            // If selection, check if char is inside of it, if no selection, just pass.
+            let in_selection = if let Some(sel) = selection {
+                // Normalize selection, even if it went backwards, so that it's always start < end.
+                // Always take into account that for rendering, we need to sub numbar_space to
+                // compare in terms of line length!!
+                let (start, end) = if sel.start.line < sel.end.line
+                    || (sel.start.line == sel.end.line
+                        && sel.start.character - numbar_space <= sel.end.character - numbar_space)
+                {
+                    (&sel.start, &sel.end)
+                } else {
+                    (&sel.end, &sel.start)
+                };
+
+                // Is in selection if line is bigger than start line or same line but char bigger
+                // than start char, and if line is less than or equal to line end and character is
+                // less than the end character.
+                (abs_line > start.line
+                    || (abs_line == start.line && char_idx >= start.character - numbar_space))
+                    && (abs_line < end.line
+                        || (abs_line == end.line && char_idx < end.character - numbar_space))
+            } else {
+                false
+            };
+
+            let styled_char = if in_selection {
+                Span::styled(ch.to_string(), Style::default().on_dark_gray())
+            } else {
+                Span::raw(ch.to_string())
+            };
+            spans.push(styled_char);
+        }
+
+        styled_lines.push(Line::from(spans));
+    }
+
+    let file_text = Paragraph::new(styled_lines);
 
     // Get cursor position relative to the viewport
     let viewport_cursor = app.buffers[0].get_viewport_cursor_pos();

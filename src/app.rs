@@ -45,7 +45,9 @@ impl App {
                 end: self.buffers[0].current_position.clone(),
             });
         } else {
+            // If on whatever mode but normal, stop selecting and reset.
             self.mode = Mode::Normal;
+            self.buffers[0].selection = None;
         }
     }
 
@@ -148,10 +150,16 @@ impl App {
                                         }
                                     }
                                 }
-                                'i' => self.insert_mode(),
+                                'i' => {
+                                    if !vis {
+                                        self.insert_mode()
+                                    }
+                                }
                                 'o' => {
-                                    self.buffers[0].insert_line_below();
-                                    self.insert_mode();
+                                    if !vis {
+                                        self.buffers[0].insert_line_below();
+                                        self.insert_mode();
+                                    }
                                 }
                                 '0' => self.buffers[0].move_cursor_start_line(),
                                 '$' => self.buffers[0].move_cursor_end_line(),
