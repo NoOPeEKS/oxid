@@ -1,4 +1,4 @@
-use super::types::{BufferPosition, FileLine};
+use super::types::{BufferPosition, FileLine, Selection};
 
 pub const STATUSBAR_SPACE: usize = 1;
 
@@ -11,6 +11,7 @@ pub struct Buffer {
     pub horizontal_scroll: usize,
     pub current_position: BufferPosition,
     pub numbar_space: usize,
+    pub selection: Option<Selection>,
 }
 
 impl Buffer {
@@ -39,6 +40,7 @@ impl Buffer {
                 character: numbar_space,
             },
             numbar_space,
+            selection: None,
         }
     }
 }
