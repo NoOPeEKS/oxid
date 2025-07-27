@@ -15,6 +15,7 @@ pub struct App {
     pub mode: Mode,
     pub quitting: bool,
     pub buffers: Vec<Buffer>,
+    pub debug_mode: bool,
 }
 
 impl App {
@@ -23,6 +24,7 @@ impl App {
             mode: Mode::Normal,
             quitting: false,
             buffers,
+            debug_mode: false,
         }
     }
 
