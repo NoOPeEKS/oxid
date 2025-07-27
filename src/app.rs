@@ -161,8 +161,28 @@ impl App {
                                         self.insert_mode();
                                     }
                                 }
-                                '0' => self.buffers[0].move_cursor_start_line(),
-                                '$' => self.buffers[0].move_cursor_end_line(),
+                                '0' => {
+                                    self.buffers[0].move_cursor_start_line();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
+                                '$' => {
+                                    self.buffers[0].move_cursor_end_line();
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selection {
+                                            let start = selection.start.clone();
+                                            let end = self.buffers[0].current_position.clone();
+                                            self.buffers[0].selection =
+                                                Some(Selection { start, end });
+                                        }
+                                    }
+                                }
                                 _ => {}
                             }
                         } else if self.mode == Mode::Insert {
