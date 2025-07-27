@@ -10,23 +10,19 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 ### 🎯 **Modal Editing**
 - **Normal Mode**: Navigate and manipulate text efficiently
 - **Insert Mode**: Type and edit text naturally
+- **Visual Mode**: Select and apply motions to your text
 
 ### ⌨️ **Vim-Inspired Navigation**
 - `h`, `j`, `k`, `l` - Move cursor left, down, up, right
 - Familiar vim keybindings for natural text navigation
-- Smart cursor positioning that respects line boundaries
 
 ### 📜 **Viewport Management**
 - **Smart Scrolling**: Automatic viewport adjustment
-- **Line Numbers**: Clean, minimal line number display
+- **Line Numbers**: Clean, minimal line number display by default
 
 ### 🖥️ **User Interface**
 - **Status Bar**: Shows current mode and cursor position
 - **Responsive Layout**: Adapts to terminal size
-
-### ⚡ **Performance**
-- **Efficient Rendering**: Only renders visible lines
-- **Asynchronous Events**: Non-blocking input handling
 
 ## 🚀 Quick Start
 
@@ -69,6 +65,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `$` | Move to the end of the line |
 | `o` | Insert line below and enter insert mode |
 | `i` | Enter insert mode |
+| `v` | Enter visual mode |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
@@ -84,13 +81,28 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `Enter` | Insert a new line |
 | `Any character` | Insert character |
 
+### Visual Mode
+| Key | Action |
+|-----|--------|
+| `Esc` | Return to normal mode |
+| `v` | Return to normal mode |
+| `h` | Move selection left |
+| `j` | Move selection down |
+| `k` | move selection up |
+| `l` | Move selection right |
+| `w` | Move selection one word forward |
+| `b` | Move selection one word backwards |
+| `e` | Move selection to the end of the word |
+| `0` | Move selection to the start of the line |
+| `$` | Move selection to the end of the line |
+
 ## 📋 Features in Progress
 
 > **Note**: The following features are planned or currently under development. Some are top-priority core functionalities and others are features that will be implemented in future releases.
 
 ### 🔧 **Text Operations**
 - [ ] **Copy/Paste Support**
-  - [ ] Visual selection mode [Core]
+  - [x] Visual selection mode [Core]
   - [ ] Yank (copy) operations[Core]
   - [ ] Paste operations [Core]
   - [ ] System clipboard integration [Core]
