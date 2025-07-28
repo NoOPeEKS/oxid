@@ -133,6 +133,7 @@ impl Buffer {
                 length: 0,
             },
         );
+        self.update_numbar_space();
         self.current_position.line = self.current_position.line.saturating_add(1);
         self.current_position.character = self.numbar_space;
         self.ensure_cursor_visible();

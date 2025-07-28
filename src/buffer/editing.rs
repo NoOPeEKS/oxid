@@ -2,6 +2,13 @@ use super::core::Buffer;
 use super::types::FileLine;
 
 impl Buffer {
+    pub fn update_numbar_space(&mut self) {
+        let numbar_space = self.file_lines.len().to_string().len() + 1;
+        if self.numbar_space != numbar_space {
+            self.numbar_space = self.file_lines.len().to_string().len() + 1;
+        }
+    }
+
     pub fn insert_char(&mut self, ch: char) {
         // TODO: Need to handle edge case where line is new line.
         // Probably gonna have to optimize this later as there are many clones.
@@ -11,6 +18,7 @@ impl Buffer {
         let insert_index = self.current_position.character - self.numbar_space;
         if insert_index <= curr_line.len() {
             curr_line.insert(insert_index, ch);
+            self.update_numbar_space();
             self.file_lines[self.current_position.line].content = curr_line.clone();
             self.file_lines[self.current_position.line].length = curr_line.len();
             self.current_position.character = self.current_position.character.saturating_add(1);
@@ -27,6 +35,7 @@ impl Buffer {
             let string_index = self.current_position.character - 1 - self.numbar_space;
             if string_index < curr_line.len() {
                 curr_line.remove(string_index);
+                self.update_numbar_space();
                 self.file_lines[self.current_position.line].content = curr_line.clone();
                 self.file_lines[self.current_position.line].length = curr_line.len();
                 self.current_position.character = self.current_position.character.saturating_sub(1);
@@ -40,6 +49,7 @@ impl Buffer {
             // If it's empty, should just delete the line and move cursor.
             if self.file_lines[current_line_index].content.is_empty() {
                 self.file_lines.remove(current_line_index);
+                self.update_numbar_space();
                 self.current_position.line = self.current_position.line.saturating_sub(1);
                 self.current_position.character =
                     self.file_lines[current_line_index - 1].length + self.numbar_space;
@@ -55,6 +65,7 @@ impl Buffer {
                 top_line.length = top_line.content.len();
                 self.file_lines[current_line_index - 1] = top_line;
                 self.file_lines.remove(current_line_index);
+                self.update_numbar_space();
 
                 self.current_position.line = self.current_position.line.saturating_sub(1);
                 self.current_position.character = top_line_old_len + self.numbar_space;
@@ -75,6 +86,7 @@ impl Buffer {
                     length: 0,
                 },
             );
+            self.update_numbar_space();
             self.current_position.line = self.current_position.line.saturating_add(1);
             self.current_position.character = self.numbar_space;
         } else if current_character >= self.numbar_space && current_character < curr_line.length {
@@ -94,6 +106,7 @@ impl Buffer {
                     length: new_line_content.len(),
                 },
             );
+            self.update_numbar_space();
             self.current_position.line = self.current_position.line.saturating_add(1);
             self.current_position.character = self.numbar_space;
         }
