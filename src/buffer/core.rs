@@ -12,6 +12,7 @@ pub struct Buffer {
     pub current_position: BufferPosition,
     pub numbar_space: usize,
     pub selection: Option<Selection>,
+    pub selected_string: Option<String>,
 }
 
 impl Buffer {
@@ -41,6 +42,7 @@ impl Buffer {
             },
             numbar_space,
             selection: None,
+            selected_string: None,
         }
     }
 }

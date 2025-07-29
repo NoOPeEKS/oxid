@@ -44,10 +44,12 @@ impl App {
                 start: self.buffers[0].current_position.clone(),
                 end: self.buffers[0].current_position.clone(),
             });
+            self.buffers[0].update_selected_string();
         } else {
             // If on whatever mode but normal, stop selecting and reset.
             self.mode = Mode::Normal;
             self.buffers[0].selection = None;
+            self.buffers[0].update_selected_string();
         }
     }
 
@@ -81,6 +83,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -92,6 +95,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -103,6 +107,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -114,6 +119,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -125,6 +131,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -136,6 +143,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -147,6 +155,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -169,6 +178,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -180,6 +190,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
