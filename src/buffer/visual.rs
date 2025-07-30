@@ -7,7 +7,12 @@ impl Buffer {
             if selection.start.line == selection.end.line {
                 let start = selection.start.character - self.numbar_space;
                 let end = selection.end.character - self.numbar_space;
-                let substr = &self.file_lines[selection.start.line].content[start..end];
+                // Normalize so that we don't get indexing errors if selection went backwards.
+                let substr = if start >= end {
+                    &self.file_lines[selection.start.line].content[end..start]
+                } else {
+                    &self.file_lines[selection.start.line].content[start..end]
+                };
                 self.selected_string = Some(String::from(substr));
             }
             // This means selection starts in one line and finishes in another one.
