@@ -103,9 +103,9 @@ As of now, the editor will either open an existing file or create a new one. It 
 ### 🔧 **Text Operations**
 - [ ] **Copy/Paste Support**
   - [x] Visual selection mode [Core]
-  - [ ] Yank (copy) operations[Core]
+  - [x] Yank (copy) operations[Core]
   - [ ] Paste operations [Core]
-  - [ ] System clipboard integration [Core]
+  - [ ] System clipboard integration
 
 - [ ] **Advanced Editing**
   - [x] Word-based navigation (`w`, `b`, `e`) [Core]
