@@ -118,6 +118,13 @@ pub fn ui(frame: &mut Frame, app: &App) {
         curr_sel.push('\n');
         curr_sel.push_str(&curr_selected_value);
 
+        let default_register_contents = app.registers.get("default");
+        curr_sel.push('\n');
+
+        curr_sel.push_str(
+            default_register_contents.unwrap_or(&"Nothing to default register yet.".to_string()),
+        );
+
         let popup = DebugPopup::default()
             .content(&curr_sel)
             .style(Style::new().yellow())
