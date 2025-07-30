@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+use std::sync::mpsc::Receiver;
+
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
 use crate::events::EventKind;
 use crate::ui::ui;
-use std::sync::mpsc::Receiver;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -15,6 +17,7 @@ pub struct App {
     pub mode: Mode,
     pub quitting: bool,
     pub buffers: Vec<Buffer>,
+    pub registers: HashMap<String, String>,
     pub debug_mode: bool,
 }
 
@@ -24,7 +27,8 @@ impl App {
             mode: Mode::Normal,
             quitting: false,
             buffers,
-            debug_mode: false,
+            registers: HashMap::from([(String::from("default"), String::new())]),
+            debug_mode: true,
         }
     }
 
@@ -44,10 +48,12 @@ impl App {
                 start: self.buffers[0].current_position.clone(),
                 end: self.buffers[0].current_position.clone(),
             });
+            self.buffers[0].update_selected_string();
         } else {
             // If on whatever mode but normal, stop selecting and reset.
             self.mode = Mode::Normal;
             self.buffers[0].selection = None;
+            self.buffers[0].update_selected_string();
         }
     }
 
@@ -81,6 +87,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -92,6 +99,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -103,6 +111,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -114,6 +123,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -125,6 +135,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -136,6 +147,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -147,6 +159,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -169,6 +182,7 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
                                         }
                                     }
                                 }
@@ -180,6 +194,19 @@ impl App {
                                             let end = self.buffers[0].current_position.clone();
                                             self.buffers[0].selection =
                                                 Some(Selection { start, end });
+                                            self.buffers[0].update_selected_string();
+                                        }
+                                    }
+                                }
+                                'y' => {
+                                    if vis {
+                                        if let Some(selection) = &self.buffers[0].selected_string {
+                                            self.registers.insert(
+                                                String::from("default"),
+                                                selection.to_string(),
+                                            );
+                                            self.normal_mode();
+                                            self.buffers[0].selection = None;
                                         }
                                     }
                                 }
