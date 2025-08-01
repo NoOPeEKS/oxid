@@ -71,7 +71,11 @@ impl App {
                         self.normal_mode();
                     }
                     EventKind::Quit => self.quitting = true,
-                    EventKind::NormalMode => self.normal_mode(),
+                    EventKind::NormalMode => {
+                        self.normal_mode();
+                        self.buffers[0].selection = None;
+                        self.buffers[0].selected_string = None;
+                    }
                     EventKind::ScrollUp => self.buffers[0].scroll_up(5),
                     EventKind::ScrollDown => self.buffers[0].scroll_down(5),
                     EventKind::KeyPressed(ch) => {
@@ -207,6 +211,15 @@ impl App {
                                             );
                                             self.normal_mode();
                                             self.buffers[0].selection = None;
+                                        }
+                                    }
+                                }
+                                'p' => {
+                                    if !vis {
+                                        if let Some(paste_string) = self.registers.get("default") {
+                                            if !paste_string.is_empty() {
+                                                self.buffers[0].paste(paste_string.to_string());
+                                            }
                                         }
                                     }
                                 }

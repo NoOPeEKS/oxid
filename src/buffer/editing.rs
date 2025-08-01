@@ -2,6 +2,30 @@ use super::core::Buffer;
 use super::types::FileLine;
 
 impl Buffer {
+    pub fn paste(&mut self, paste_string: String) {
+        let curr_line = self.current_position.line;
+        let curr_char = self.current_position.character - self.numbar_space;
+        let curr_string = self.file_lines[curr_line].content.clone();
+        let start_until_cursor = &curr_string[0..curr_char];
+        let rest_original_string = &curr_string[curr_char..];
+
+        let newlines: Vec<_> = paste_string.lines().collect();
+
+        if newlines.is_empty() {
+            // We should do nothing because it's weird, we should never get an empty string but
+            // just in case.
+        } else if newlines.len() == 1 {
+            // If we have len == 1 this means there were no newlines and we can just append on
+            // cursor position and don't have to handle newlines after.
+            let mut new_str = String::from(start_until_cursor);
+            new_str.push_str(&paste_string);
+            new_str.push_str(rest_original_string);
+            self.file_lines[curr_line].length = new_str.len();
+            self.file_lines[curr_line].content = new_str;
+        } else {
+            // If we enter here, we must handle newlines when pasting...
+        }
+    }
     pub fn update_numbar_space(&mut self) {
         let numbar_space = self.file_lines.len().to_string().len() + 1;
         if self.numbar_space != numbar_space {
