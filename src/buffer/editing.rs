@@ -11,10 +11,9 @@ impl Buffer {
 
         let newlines: Vec<_> = paste_string.lines().collect();
 
-        if newlines.is_empty() {
-            // We should do nothing because it's weird, we should never get an empty string but
-            // just in case.
-        } else if newlines.len() == 1 {
+        // We only handle two cases, if len == 1 or len > 1. We should never receive an empty
+        // pastestring here.
+        if newlines.len() == 1 {
             // If we have len == 1 this means there were no newlines and we can just append on
             // cursor position and don't have to handle newlines after.
             let mut new_str = String::from(start_until_cursor);
@@ -22,8 +21,35 @@ impl Buffer {
             new_str.push_str(rest_original_string);
             self.file_lines[curr_line].length = new_str.len();
             self.file_lines[curr_line].content = new_str;
-        } else {
+        } else if newlines.len() > 1 {
             // If we enter here, we must handle newlines when pasting...
+            let mut first_line = String::from(start_until_cursor);
+            first_line.push_str(newlines[0]);
+            self.file_lines[curr_line].length = first_line.len();
+            self.file_lines[curr_line].content = first_line;
+
+            for (i, str_text) in newlines[1..].iter().enumerate() {
+                if i == newlines.len() - 1 {
+                    let mut last_line = String::from(rest_original_string);
+                    last_line.push_str(str_text);
+                    let len = last_line.len();
+                    self.file_lines.insert(
+                        i,
+                        FileLine {
+                            content: last_line,
+                            length: len,
+                        },
+                    )
+                } else {
+                    self.file_lines.insert(
+                        i,
+                        FileLine {
+                            content: str_text.to_string(),
+                            length: str_text.len(),
+                        },
+                    )
+                }
+            }
         }
     }
     pub fn update_numbar_space(&mut self) {
