@@ -8,7 +8,6 @@ impl Buffer {
         let curr_string = self.file_lines[curr_line].content.clone();
         let start_until_cursor = &curr_string[0..curr_char];
         let rest_original_string = &curr_string[curr_char..];
-
         let newlines: Vec<_> = paste_string.lines().collect();
 
         // We only handle two cases, if len == 1 or len > 1. We should never receive an empty
@@ -22,34 +21,35 @@ impl Buffer {
             self.file_lines[curr_line].length = new_str.len();
             self.file_lines[curr_line].content = new_str;
         } else if newlines.len() > 1 {
-            // If we enter here, we must handle newlines when pasting...
+            // If we enter here, means we need to do multiline selection handling.
+            // Update the current line with the first part
             let mut first_line = String::from(start_until_cursor);
             first_line.push_str(newlines[0]);
             self.file_lines[curr_line].length = first_line.len();
             self.file_lines[curr_line].content = first_line;
 
-            for (i, str_text) in newlines[1..].iter().enumerate() {
-                if i == newlines.len() - 1 {
-                    let mut last_line = String::from(rest_original_string);
-                    last_line.push_str(str_text);
-                    let len = last_line.len();
-                    self.file_lines.insert(
-                        i,
-                        FileLine {
-                            content: last_line,
-                            length: len,
-                        },
-                    )
-                } else {
-                    self.file_lines.insert(
-                        i,
-                        FileLine {
-                            content: str_text.to_string(),
-                            length: str_text.len(),
-                        },
-                    )
-                }
+            // Insert middle lines (if any)
+            for (i, str_text) in newlines[1..newlines.len() - 1].iter().enumerate() {
+                self.file_lines.insert(
+                    curr_line + i + 1,
+                    FileLine {
+                        content: str_text.to_string(),
+                        length: str_text.len(),
+                    },
+                );
             }
+
+            // Handle the last line
+            let last_newline = newlines[newlines.len() - 1];
+            let mut last_line = String::from(last_newline);
+            last_line.push_str(rest_original_string);
+            self.file_lines.insert(
+                curr_line + newlines.len() - 1,
+                FileLine {
+                    content: last_line.clone(),
+                    length: last_line.len(),
+                },
+            );
         }
     }
     pub fn update_numbar_space(&mut self) {
