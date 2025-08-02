@@ -24,11 +24,13 @@ impl Buffer {
                 let mut final_string = String::from(start_str);
 
                 let num_lines = selection.end.line - selection.start.line;
+                final_string.push('\n');
 
                 // We get each other line completely besides the last line.
                 for i in 0..num_lines - 1 {
                     let line = &self.file_lines[selection.start.line + i + 1].content;
                     final_string.push_str(line);
+                    final_string.push('\n');
                 }
                 // Last line is handled by only taking from 0 to selection.end.char.
                 let last_line = &self.file_lines[selection.end.line].content
