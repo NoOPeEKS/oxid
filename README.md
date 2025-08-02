@@ -66,6 +66,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `o` | Insert line below and enter insert mode |
 | `i` | Enter insert mode |
 | `v` | Enter visual mode |
+| `p` | Paste previously yanked text |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
@@ -95,6 +96,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `e` | Move selection to the end of the word |
 | `0` | Move selection to the start of the line |
 | `$` | Move selection to the end of the line |
+| `y` | Yank current selection to default register |
 
 ## 📋 Features in Progress
 
@@ -102,21 +104,14 @@ As of now, the editor will either open an existing file or create a new one. It 
 
 ### 🔧 **Text Operations**
 - [ ] **Copy/Paste Support**
-  - [x] Visual selection mode [Core]
-  - [x] Yank (copy) operations[Core]
-  - [ ] Paste operations [Core]
   - [ ] System clipboard integration
 
 - [ ] **Advanced Editing**
-  - [x] Word-based navigation (`w`, `b`, `e`) [Core]
   - [ ] Undo/Redo functionality
 
 ### 📁 **File Management**
 - [ ] **File Operations**
-  - [x] Open arbitrary file (command line argument) [Core]
-  - [x] Save current file [Core]
   - [ ] Save as
-  - [x] New file creation
   - [ ] Multi-file editing
 
 ### 🎨 **User Interface Enhancements**
