@@ -4,3 +4,6 @@ members = [
   "oxid",
   "oxid-lsp"
 ]
+
+[workspace.dependencies]
+anyhow = "1.0.98"
