@@ -7,7 +7,7 @@ pub struct Request {
     pub params: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Notification {
     pub method: String,
     pub params: Option<serde_json::Value>,

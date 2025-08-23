@@ -292,5 +292,17 @@ mod tests {
             InboundMessage::Notification(noti) => serde_json::to_string_pretty(&noti).unwrap(),
         };
         println!("{response_str}");
+        let notif_back: Notification = serde_json::from_str(&response_str).unwrap();
+        assert_eq!(
+            notif_back,
+            Notification {
+                method: String::from("textDocument/publishDiagnostics"),
+                params: Some(json!({
+                    "diagnostics": [],
+                    "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
+                    "version": 1
+                }))
+            }
+        );
     }
 }
