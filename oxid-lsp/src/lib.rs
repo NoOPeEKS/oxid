@@ -1,5 +1,5 @@
 use std::{
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Read, Write},
     process::{Command, Stdio},
 };
 
@@ -35,10 +35,21 @@ fn run_lsp() -> anyhow::Result<()> {
 
     let mut content_length = String::new();
     reader.read_line(&mut content_length)?;
-    println!("{content_length:?}");
 
-    // "Content-Length: 2476\r\n" is the first line
-    // content_length.to_string().split("")
+    let content_length = content_length
+        .trim_start_matches("Content-Length: ")
+        .trim()
+        .parse::<usize>()?;
+
+    let mut empty_line = String::new();
+    reader.read_line(&mut empty_line)?;
+
+    let mut body = vec![0; content_length];
+    reader.read_exact(&mut body)?;
+    
+    let body = String::from_utf8_lossy(&body);
+    println!("{body}");
+
     Ok(())
 }
 
