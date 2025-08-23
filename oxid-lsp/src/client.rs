@@ -27,6 +27,7 @@ pub fn process_lsp_message(
             data,
         };
         rtx.send(InboundMessage::Error(rsp_error))?;
+        return Ok(());
     }
 
     // If it's got an id, its just a normal response.
@@ -157,22 +158,12 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
                     continue;
                 }
 
-                // TODO: PROCESS LSP MESSAGE (CHECK IF ERROR, RESPONSE OR NOTIFICATION)
-                // basically do  this:
-                //
                 match process_lsp_message(&response_body, &response_tx.clone()) {
                     Ok(_) => (),
                     Err(_) => {
                         continue;
                     }
                 }
-                // let response_body = String::from_utf8_lossy(&response_body);
-                // let response_json: serde_json::Value =
-                //     serde_json::from_str(&response_body).unwrap();
-                //
-                // response_tx
-                //     .send(InboundMessage::Value(response_json))
-                //     .unwrap();
             } else {
                 // Invalid message, just continue to next iter
                 continue;
@@ -216,7 +207,7 @@ mod tests {
     use crate::{
         next_id,
         types::{
-            ClientCapabilities, ClientInfo, HoverClientCapabilities, InitializeParams,
+            ClientCapabilities, ClientInfo, HoverClientCapabilities, InitializeParams, MarkupKind,
             TextDocumentClientCapabilities,
         },
     };
@@ -238,7 +229,7 @@ mod tests {
                 text_document: Some(TextDocumentClientCapabilities {
                     hover: Some(HoverClientCapabilities {
                         dynamic_registration: Some(true),
-                        content_format: Some(Vec::new()),
+                        content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
                     }),
                 }),
             },
@@ -254,13 +245,7 @@ mod tests {
             .send(OutboundMessage::Request(initialize_request))
             .unwrap();
 
-        let response = lsp.response_rx.recv().unwrap();
-        let response_str = match response {
-            InboundMessage::Response(resp) => serde_json::to_string_pretty(&resp).unwrap(),
-            InboundMessage::Error(err) => serde_json::to_string_pretty(&err).unwrap(),
-            InboundMessage::Notification(noti) => serde_json::to_string_pretty(&noti).unwrap(),
-        };
-        println!("{response_str}");
+        let _ = lsp.response_rx.recv().unwrap(); // ignore initialize response
 
         let initialized_notification = Notification {
             method: "initialized".to_string(),
@@ -277,7 +262,7 @@ mod tests {
                 "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
                 "languageId": "rust",
                 "version": 1,
-                "text": "pub fn main() {\n    println!(\"hello\");\n}\n"
+                "text": "pub fn main() {\n println!(\"hello\");\n}\n"
               }
             })),
         };
@@ -291,7 +276,7 @@ mod tests {
             InboundMessage::Error(err) => serde_json::to_string_pretty(&err).unwrap(),
             InboundMessage::Notification(noti) => serde_json::to_string_pretty(&noti).unwrap(),
         };
-        println!("{response_str}");
+
         let notif_back: Notification = serde_json::from_str(&response_str).unwrap();
         assert_eq!(
             notif_back,
@@ -304,5 +289,97 @@ mod tests {
                 }))
             }
         );
+    }
+
+    #[test]
+    fn hover_request() {
+        let lsp = start_lsp().unwrap();
+
+        let initialization_params = InitializeParams {
+            process_id: None,
+            client_info: Some(ClientInfo {
+                name: "oxid".to_string(),
+                version: Some("0.1.0".to_string()),
+            }),
+            locale: None,
+            root_uri: Some("file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs".into()),
+            initialization_options: None,
+            capabilities: ClientCapabilities {
+                text_document: Some(TextDocumentClientCapabilities {
+                    hover: Some(HoverClientCapabilities {
+                        dynamic_registration: Some(true),
+                        content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
+                    }),
+                }),
+            },
+            trace: None,
+        };
+
+        let initialize_request = Request {
+            id: next_id() as i64,
+            method: "initialize".to_string(),
+            params: Some(serde_json::to_value(&initialization_params).unwrap()),
+        };
+        lsp.request_tx
+            .send(OutboundMessage::Request(initialize_request))
+            .unwrap();
+
+        let _ = lsp.response_rx.recv().unwrap(); // recieve initialize response
+
+        let initialized_notification = Notification {
+            method: "initialized".to_string(),
+            params: None,
+        };
+        lsp.request_tx
+            .send(OutboundMessage::Notification(initialized_notification))
+            .unwrap();
+
+        let notif = Notification {
+            method: "textDocument/didOpen".to_string(),
+            params: Some(json!({
+              "textDocument": {
+                "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
+                "languageId": "rust",
+                "version": 1,
+                "text": "use std::sync::atomic::AtomicUsize;\n\npub mod client;\npub mod types;\n\nstatic ID: AtomicUsize = AtomicUsize::new(1);\n\nfn next_id() -> usize {\n    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)\n}\n"
+              }
+            })),
+        };
+        lsp.request_tx
+            .send(OutboundMessage::Notification(notif))
+            .unwrap();
+
+        let _ = lsp.response_rx.recv().unwrap(); // ignore publish diagnostics
+
+        let req = Request {
+            id: next_id() as i64,
+            method: "textDocument/hover".to_string(),
+            params: Some(json!({
+                "textDocument": {
+                    "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs"
+                },
+                "position": {
+                    "line": 5,
+                    "character": 9,
+                }
+            })),
+        };
+        lsp.request_tx.send(OutboundMessage::Request(req)).unwrap();
+
+        loop {
+            if let InboundMessage::Response(resp) = lsp.response_rx.recv().unwrap() {
+                let resp_obj = serde_json::to_value(&resp).unwrap();
+                if let Some(result) = resp_obj.get("result") {
+                    if let Some(contents) = result.get("contents") {
+                        if let Some(kind) = contents.get("kind") {
+                            assert_eq!(kind.as_str().unwrap(), "markdown");
+                            break;
+                        }
+                    }
+                }
+            } else {
+                continue;
+            }
+        }
     }
 }

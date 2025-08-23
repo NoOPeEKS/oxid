@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+//----------------BASE LSP MESSAGES----------------
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
     pub id: i64,
@@ -27,9 +28,10 @@ pub struct ResponseError {
     pub data: Option<serde_json::Value>,
 }
 
-//--------------------------------------------------------
+//--------------PARAMS AND SUBPARAMS TYPES----------------
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct InitializeParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub process_id: Option<i64>,
@@ -53,6 +55,7 @@ pub struct InitializeParams {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClientInfo {
     pub name: String,
 
@@ -61,6 +64,7 @@ pub struct ClientInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
     // #[serde(skip_serializing_if = "Option::is_none")]
     // pub workspace: Option<WorkspaceClientCapabilities>,
@@ -76,7 +80,9 @@ pub struct ClientCapabilities {
     // pub experimental: Option<Value>,
 }
 
+// For now we only cover hover capabilities (easy)
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TextDocumentClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hover: Option<HoverClientCapabilities>,
@@ -112,6 +118,7 @@ pub struct TextDocumentClientCapabilities {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HoverClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_registration: Option<bool>,
