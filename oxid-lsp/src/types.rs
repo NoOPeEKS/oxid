@@ -66,6 +66,24 @@ pub struct ClientInfo {
     pub version: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InitializeResult {
+    pub capabilities: ServerCapabilities,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_info: Option<ServerInfo>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerInfo {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientCapabilities {
@@ -731,4 +749,77 @@ pub struct MessageActionItem {
 pub struct ShowDocumentClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub support: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_encoding: Option<PositionEncodingKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_document_sync: Option<TextDocumentSyncOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_provider: Option<CompletionOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hover_provider: Option<HoverProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature_help_provider: Option<SignatureHelpOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declaration_provider: Option<DeclarationProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub definition_provider: Option<DefinitionProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_definition_provider: Option<TypeDefinitionProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub implementation_provider: Option<ImplementationProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub references_provider: Option<ReferencesProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_highlight_provider: Option<DocumentHighlightProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_symbol_provider: Option<DocumentSymbolProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_action_provider: Option<CodeActionProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_lens_provider: Option<CodeLensOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_link_provider: Option<DocumentLinkOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color_provider: Option<ColorProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_formatting_provider: Option<DocumentFormattingProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_range_formatting_provider: Option<DocumentRangeFormattingProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_on_type_formatting_provider: Option<DocumentOnTypeFormattingOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rename_provider: Option<RenameProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folding_range_provider: Option<FoldingRangeProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execute_command_provider: Option<ExecuteCommandOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selection_range_provider: Option<SelectionRangeProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub linked_editing_range_provider: Option<LinkedEditingRangeProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_hierarchy_provider: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub semantic_tokens_provider: Option<SemanticTokensOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub moniker_provider: Option<MonikerProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_hierarchy_provider: Option<TypeHierarchyProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inline_value_provider: Option<InlineValueProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inlay_hint_provider: Option<InlayHintOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostic_provider: Option<DiagnosticProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_symbol_provider: Option<WorkspaceSymbolProviderCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<WorkspaceServerCapabilities>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub experimental: Option<serde_json::Value>,
 }
