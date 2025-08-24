@@ -234,7 +234,7 @@ mod tests {
                 }),
                 ..Default::default()
             },
-            trace: None,
+            ..Default::default()
         };
 
         let initialize_request = Request {
@@ -308,7 +308,7 @@ mod tests {
             capabilities: ClientCapabilities {
                 text_document: Some(TextDocumentClientCapabilities {
                     hover: Some(HoverClientCapabilities {
-                        dynamic_registration: Some(true),
+                        dynamic_registration: Some(false),
                         content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
                     }),
                 }),
@@ -362,7 +362,7 @@ mod tests {
                 },
                 "position": {
                     "line": 5,
-                    "character": 9,
+                    "character": 7,
                 }
             })),
         };
@@ -371,6 +371,7 @@ mod tests {
         loop {
             if let InboundMessage::Response(resp) = lsp.response_rx.recv().unwrap() {
                 let resp_obj = serde_json::to_value(&resp).unwrap();
+                println!("{resp_obj:#?}");
                 if let Some(result) = resp_obj.get("result") {
                     if let Some(contents) = result.get("contents") {
                         if let Some(kind) = contents.get("kind") {
