@@ -74,7 +74,6 @@ pub struct InitializeResult {
     pub server_info: Option<ServerInfo>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerInfo {
@@ -190,7 +189,7 @@ pub struct TextDocumentPositionParams {
     pub position: Position,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
@@ -822,4 +821,546 @@ pub struct ServerCapabilities {
     pub workspace: Option<WorkspaceServerCapabilities>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextDocumentSyncOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_close: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change: Option<TextDocumentSyncKind>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "i32", into = "i32")]
+pub enum TextDocumentSyncKind {
+    None = 0,
+    Full = 1,
+    Incremental = 2,
+}
+
+impl From<i32> for TextDocumentSyncKind {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => TextDocumentSyncKind::None,
+            1 => TextDocumentSyncKind::Full,
+            2 => TextDocumentSyncKind::Incremental,
+            _ => panic!("Invalid TextDocumentSyncKind value: {}", value),
+        }
+    }
+}
+
+impl From<TextDocumentSyncKind> for i32 {
+    fn from(kind: TextDocumentSyncKind) -> i32 {
+        kind as i32
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trigger_characters: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all_commit_characters: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_provider: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_item: Option<CompletionOptionsCompletionItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionOptionsCompletionItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_details_support: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HoverProviderCapability {
+    Simple(bool),
+    Options(HoverOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HoverOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SignatureHelpOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trigger_characters: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retrigger_characters: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DeclarationProviderCapability {
+    Simple(bool),
+    Options(DeclarationOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeclarationOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DefinitionProviderCapability {
+    Simple(bool),
+    Options(DefinitionOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DefinitionOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TypeDefinitionProviderCapability {
+    Simple(bool),
+    Options(TypeDefinitionOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TypeDefinitionOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ImplementationProviderCapability {
+    Simple(bool),
+    Options(ImplementationOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImplementationOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ReferencesProviderCapability {
+    Simple(bool),
+    Options(ReferenceOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferenceOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DocumentHighlightProviderCapability {
+    Simple(bool),
+    Options(DocumentHighlightOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentHighlightOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DocumentSymbolProviderCapability {
+    Simple(bool),
+    Options(DocumentSymbolOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSymbolOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CodeActionProviderCapability {
+    Simple(bool),
+    Options(CodeActionOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodeActionOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodeLensOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_provider: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentLinkOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_provider: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ColorProviderCapability {
+    Simple(bool),
+    Options(DocumentColorOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentColorOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DocumentFormattingProviderCapability {
+    Simple(bool),
+    Options(DocumentFormattingOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentFormattingOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DocumentRangeFormattingProviderCapability {
+    Simple(bool),
+    Options(DocumentRangeFormattingOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentRangeFormattingOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentOnTypeFormattingOptions {
+    pub first_trigger_character: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub more_trigger_character: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RenameProviderCapability {
+    Simple(bool),
+    Options(RenameOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prepare_provider: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum FoldingRangeProviderCapability {
+    Simple(bool),
+    Options(FoldingRangeOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FoldingRangeOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecuteCommandOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    pub commands: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SelectionRangeProviderCapability {
+    Simple(bool),
+    Options(SelectionRangeOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SelectionRangeOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LinkedEditingRangeProviderCapability {
+    Simple(bool),
+    Options(LinkedEditingRangeOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkedEditingRangeOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticTokensOptions {
+    pub legend: SemanticTokensLegend,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub range: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub full: Option<SemanticTokensFull>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticTokensLegend {
+    pub token_types: Vec<String>,
+    pub token_modifiers: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticTokensFull {
+    pub delta: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MonikerProviderCapability {
+    Simple(bool),
+    Options(MonikerOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonikerOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TypeHierarchyProviderCapability {
+    Simple(bool),
+    Options(TypeHierarchyOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TypeHierarchyOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum InlineValueProviderCapability {
+    Simple(bool),
+    Options(InlineValueOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InlineValueOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InlayHintOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_provider: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+pub enum DiagnosticProviderCapability {
+    Options(DiagnosticOptions),
+    RegistrationOptions(DiagnosticRegistrationOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    pub inter_file_dependencies: bool,
+    pub workspace_diagnostics: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticRegistrationOptions {
+    #[serde(flatten)]
+    pub text_document_registration_options: TextDocumentRegistrationOptions,
+    #[serde(flatten)]
+    pub diagnostic_options: DiagnosticOptions,
+    #[serde(flatten)]
+    pub static_registration_options: StaticRegistrationOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextDocumentRegistrationOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_selector: Option<DocumentSelector>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StaticRegistrationOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WorkspaceSymbolProviderCapability {
+    Simple(bool),
+    Options(WorkspaceSymbolOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceSymbolOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_provider: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceServerCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_folders: Option<WorkspaceFoldersServerCapabilities>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_operations: Option<FileOperationsServerCapabilities>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFoldersServerCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_notifications: Option<ChangeNotificationsCapability>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ChangeNotificationsCapability {
+    Simple(bool),
+    String(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationsServerCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did_create: Option<FileOperationRegistrationOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_create: Option<FileOperationRegistrationOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did_rename: Option<FileOperationRegistrationOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_rename: Option<FileOperationRegistrationOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did_delete: Option<FileOperationRegistrationOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_delete: Option<FileOperationRegistrationOptions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationRegistrationOptions {
+    pub filters: Vec<FileOperationFilter>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationFilter {
+    pub scheme: Option<String>,
+    pub pattern: FileOperationPattern,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationPattern {
+    pub glob: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matches: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<FileOperationPatternOptions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FileOperationPatternKind {
+    File,
+    Folder,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationPatternOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore_case: Option<bool>,
 }
