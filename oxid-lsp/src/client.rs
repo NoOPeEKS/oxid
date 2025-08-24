@@ -232,6 +232,7 @@ mod tests {
                         content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
                     }),
                 }),
+                ..Default::default()
             },
             trace: None,
         };
@@ -311,8 +312,9 @@ mod tests {
                         content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
                     }),
                 }),
+                ..Default::default()
             },
-            trace: None,
+            ..Default::default()
         };
 
         let initialize_request = Request {
