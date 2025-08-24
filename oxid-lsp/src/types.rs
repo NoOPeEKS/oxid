@@ -1,4 +1,5 @@
 use core::panic;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +54,7 @@ pub struct InitializeParams {
     pub capabilities: ClientCapabilities,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace: Option<String>,
+    pub trace: Option<TraceValue>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -347,4 +348,132 @@ pub struct MarkdownClientCapabilities {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFileOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overwrite: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore_if_exists: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFile {
+    pub kind: String,
+    pub uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<CreateFileOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotation_id: Option<ChangeAnnotationIdentifier>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameFileOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overwrite: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore_if_exists: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameFile {
+    pub kind: String,
+    pub old_uri: String,
+    pub new_uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<RenameFileOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotation_id: Option<ChangeAnnotationIdentifier>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteFileOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recursive: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore_if_not_exists: Option<bool>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteFile {
+    pub kind: String,
+    pub uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<DeleteFileOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotation_id: Option<ChangeAnnotationIdentifier>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceEdit {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub changes: Option<HashMap<String, Vec<TextEdit>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_changes: Option<DocumentChanges>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_annotations: Option<HashMap<String, ChangeAnnotation>>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DocumentChanges {
+    TextDocumentEdits(Vec<TextDocumentEdit>),
+    Operations(Vec<DocumentChangeOperation>),
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum DocumentChangeOperation {
+    TextDocumentEdit(TextDocumentEdit),
+    CreateFile(CreateFile),
+    RenameFile(RenameFile),
+    DeleteFile(DeleteFile),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceEditClientCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_changes: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_operations: Option<ResourceOperationKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_handling: Option<FailureHandlingKind>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ResourceOperationKind {
+    Create,
+    Rename,
+    Delete,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FailureHandlingKind {
+    Abort,
+    Transactional,
+    Undo,
+    TextOnlyTransactional,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkDoneProgressOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_done_progress: Option<bool>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TraceValue {
+    Off,
+    Messages,
+    Verbose
 }
