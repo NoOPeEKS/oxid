@@ -55,6 +55,16 @@ pub struct InitializeParams {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace: Option<TraceValue>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_folders: Option<Vec<WorkspaceFolder>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFolder {
+    pub uri: String,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
