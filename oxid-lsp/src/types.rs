@@ -130,13 +130,6 @@ pub struct HoverClientCapabilities {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum MarkupKind {
-    PlainText,
-    Markdown,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Position {
     pub line: usize,
@@ -321,5 +314,37 @@ pub struct DiagnosticRelatedInformation {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodeDescription {
-    pub href: String
+    pub href: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Command {
+    pub title: String,
+    pub command: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MarkupKind {
+    PlainText,
+    Markdown,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MarkupContent {
+    pub kind: MarkupKind,
+    pub value: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkdownClientCapabilities {
+    pub parser: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_tags: Option<Vec<String>>,
 }
