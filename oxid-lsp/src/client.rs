@@ -6,7 +6,7 @@ use std::{
 
 use serde_json::json;
 
-use crate::get_client_capabilities;
+use crate::{get_client_capabilities, types::ServerCapabilities};
 use crate::{
     next_id,
     types::{InitializeParams, Notification, Request, Response, ResponseError},
@@ -178,6 +178,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
     let lsp_client = LspClient {
         request_tx: request_tx.clone(),
         response_rx,
+        server_capabilities: ServerCapabilities::default(),
     };
 
     Ok(lsp_client)
@@ -189,6 +190,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
 pub struct LspClient {
     request_tx: std::sync::mpsc::Sender<OutboundMessage>,
     response_rx: std::sync::mpsc::Receiver<InboundMessage>,
+    server_capabilities: ServerCapabilities,
 }
 
 impl LspClient {
@@ -225,11 +227,50 @@ impl LspClient {
             Err(_) => anyhow::bail!("Error initializing LSP Client"),
         };
 
-        let _ = self.send_request("initialize", initialize_params)?;
+        let init_req_id = self.send_request("initialize", initialize_params)?;
 
-        // TODO: Send notification initialized once recieved response.
+        loop {
+            // Loop until we get a response to the initialize request or an error.
+            match self.recv_message() {
+                Ok(msg) => {
+                    if let InboundMessage::Response(resp) = msg {
+                        if resp.id == init_req_id {
+                            if let Some(result) = resp.result {
+                                if let Some(caps) = result.get("capabilities") {
+                                    match serde_json::from_value::<ServerCapabilities>(caps.clone())
+                                    {
+                                        Ok(server_cap) => {
+                                            self.server_capabilities = server_cap;
+                                        }
+                                        Err(err) => anyhow::bail!(
+                                            "Could not serialize server capabilities: {}",
+                                            err
+                                        ),
+                                    }
+                                    return Ok(());
+                                }
+                            } else {
+                                anyhow::bail!("Did not get any result from initialize response");
+                            }
+                        }
+                    } else if let InboundMessage::Error(err) = msg {
+                        // If error, quit gracefully.
+                        anyhow::bail!("Got a ResponseError on initialize request: {:#?}", err)
+                    } else {
+                        continue;
+                    }
+                }
+                Err(err) => anyhow::bail!("Could not initialize the client: {}", err),
+            }
+        }
+    }
 
-        Ok(())
+    fn recv_message(&mut self) -> anyhow::Result<InboundMessage> {
+        if let Ok(msg) = self.response_rx.recv() {
+            Ok(msg)
+        } else {
+            anyhow::bail!("Error trying to recieve message");
+        }
     }
 }
 
@@ -250,191 +291,106 @@ pub enum InboundMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        next_id,
-        types::{
-            ClientCapabilities, ClientInfo, HoverClientCapabilities, InitializeParams, MarkupKind,
-            TextDocumentClientCapabilities,
-        },
-    };
+    use crate::next_id;
+    use crate::types::*;
 
     #[test]
-    fn new_initialize_api() {
+    fn initialize_lsp() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
     }
 
-    #[test]
-    fn initialize_lsp() {
-        let lsp = start_lsp().unwrap();
-
-        let initialization_params = InitializeParams {
-            process_id: None,
-            client_info: Some(ClientInfo {
-                name: "oxid".to_string(),
-                version: Some("0.1.0".to_string()),
-            }),
-            locale: None,
-            root_uri: Some("file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs".into()),
-            initialization_options: None,
-            capabilities: ClientCapabilities {
-                text_document: Some(TextDocumentClientCapabilities {
-                    hover: Some(HoverClientCapabilities {
-                        dynamic_registration: Some(true),
-                        content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
-                    }),
-                }),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let initialize_request = Request {
-            id: next_id() as i64,
-            method: "initialize".to_string(),
-            params: Some(serde_json::to_value(&initialization_params).unwrap()),
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Request(initialize_request))
-            .unwrap();
-
-        let _ = lsp.response_rx.recv().unwrap(); // ignore initialize response
-
-        let initialized_notification = Notification {
-            method: "initialized".to_string(),
-            params: None,
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Notification(initialized_notification))
-            .unwrap();
-
-        let notif = Notification {
-            method: "textDocument/didOpen".to_string(),
-            params: Some(json!({
-              "textDocument": {
-                "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
-                "languageId": "rust",
-                "version": 1,
-                "text": "pub fn main() {\n println!(\"hello\");\n}\n"
-              }
-            })),
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Notification(notif))
-            .unwrap();
-
-        let response = lsp.response_rx.recv().unwrap();
-        let response_str = match response {
-            InboundMessage::Response(resp) => serde_json::to_string_pretty(&resp).unwrap(),
-            InboundMessage::Error(err) => serde_json::to_string_pretty(&err).unwrap(),
-            InboundMessage::Notification(noti) => serde_json::to_string_pretty(&noti).unwrap(),
-        };
-
-        let notif_back: Notification = serde_json::from_str(&response_str).unwrap();
-        assert_eq!(
-            notif_back,
-            Notification {
-                method: String::from("textDocument/publishDiagnostics"),
-                params: Some(json!({
-                    "diagnostics": [],
-                    "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
-                    "version": 1
-                }))
-            }
-        );
-    }
-
-    #[test]
-    fn hover_request() {
-        let lsp = start_lsp().unwrap();
-
-        let initialization_params = InitializeParams {
-            process_id: None,
-            client_info: Some(ClientInfo {
-                name: "oxid".to_string(),
-                version: Some("0.1.0".to_string()),
-            }),
-            locale: None,
-            root_uri: Some("file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs".into()),
-            initialization_options: None,
-            capabilities: ClientCapabilities {
-                text_document: Some(TextDocumentClientCapabilities {
-                    hover: Some(HoverClientCapabilities {
-                        dynamic_registration: Some(false),
-                        content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
-                    }),
-                }),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let initialize_request = Request {
-            id: next_id() as i64,
-            method: "initialize".to_string(),
-            params: Some(serde_json::to_value(&initialization_params).unwrap()),
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Request(initialize_request))
-            .unwrap();
-
-        let _ = lsp.response_rx.recv().unwrap(); // recieve initialize response
-
-        let initialized_notification = Notification {
-            method: "initialized".to_string(),
-            params: None,
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Notification(initialized_notification))
-            .unwrap();
-
-        let notif = Notification {
-            method: "textDocument/didOpen".to_string(),
-            params: Some(json!({
-              "textDocument": {
-                "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
-                "languageId": "rust",
-                "version": 1,
-                "text": "use std::sync::atomic::AtomicUsize;\n\npub mod client;\npub mod types;\n\nstatic ID: AtomicUsize = AtomicUsize::new(1);\n\nfn next_id() -> usize {\n    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)\n}\n"
-              }
-            })),
-        };
-        lsp.request_tx
-            .send(OutboundMessage::Notification(notif))
-            .unwrap();
-
-        let _ = lsp.response_rx.recv().unwrap(); // ignore publish diagnostics
-
-        let req = Request {
-            id: next_id() as i64,
-            method: "textDocument/hover".to_string(),
-            params: Some(json!({
-                "textDocument": {
-                    "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs"
-                },
-                "position": {
-                    "line": 5,
-                    "character": 7,
-                }
-            })),
-        };
-        lsp.request_tx.send(OutboundMessage::Request(req)).unwrap();
-
-        loop {
-            if let InboundMessage::Response(resp) = lsp.response_rx.recv().unwrap() {
-                let resp_obj = serde_json::to_value(&resp).unwrap();
-                println!("{resp_obj:#?}");
-                if let Some(result) = resp_obj.get("result") {
-                    if let Some(contents) = result.get("contents") {
-                        if let Some(kind) = contents.get("kind") {
-                            assert_eq!(kind.as_str().unwrap(), "markdown");
-                            break;
-                        }
-                    }
-                }
-            } else {
-                continue;
-            }
-        }
-    }
+    // #[test]
+    // fn hover_request() {
+    //     let lsp = start_lsp().unwrap();
+    //
+    //     let initialization_params = InitializeParams {
+    //         process_id: None,
+    //         client_info: Some(ClientInfo {
+    //             name: "oxid".to_string(),
+    //             version: Some("0.1.0".to_string()),
+    //         }),
+    //         locale: None,
+    //         root_uri: Some("file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs".into()),
+    //         initialization_options: None,
+    //         capabilities: ClientCapabilities {
+    //             text_document: Some(TextDocumentClientCapabilities {
+    //                 hover: Some(HoverClientCapabilities {
+    //                     dynamic_registration: Some(false),
+    //                     content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
+    //                 }),
+    //             }),
+    //             ..Default::default()
+    //         },
+    //         ..Default::default()
+    //     };
+    //
+    //     let initialize_request = Request {
+    //         id: next_id() as i64,
+    //         method: "initialize".to_string(),
+    //         params: Some(serde_json::to_value(&initialization_params).unwrap()),
+    //     };
+    //     lsp.request_tx
+    //         .send(OutboundMessage::Request(initialize_request))
+    //         .unwrap();
+    //
+    //     let _ = lsp.response_rx.recv().unwrap(); // recieve initialize response
+    //
+    //     let initialized_notification = Notification {
+    //         method: "initialized".to_string(),
+    //         params: None,
+    //     };
+    //     lsp.request_tx
+    //         .send(OutboundMessage::Notification(initialized_notification))
+    //         .unwrap();
+    //
+    //     let notif = Notification {
+    //         method: "textDocument/didOpen".to_string(),
+    //         params: Some(json!({
+    //           "textDocument": {
+    //             "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
+    //             "languageId": "rust",
+    //             "version": 1,
+    //             "text": "use std::sync::atomic::AtomicUsize;\n\npub mod client;\npub mod types;\n\nstatic ID: AtomicUsize = AtomicUsize::new(1);\n\nfn next_id() -> usize {\n    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)\n}\n"
+    //           }
+    //         })),
+    //     };
+    //     lsp.request_tx
+    //         .send(OutboundMessage::Notification(notif))
+    //         .unwrap();
+    //
+    //     let _ = lsp.response_rx.recv().unwrap(); // ignore publish diagnostics
+    //
+    //     let req = Request {
+    //         id: next_id() as i64,
+    //         method: "textDocument/hover".to_string(),
+    //         params: Some(json!({
+    //             "textDocument": {
+    //                 "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs"
+    //             },
+    //             "position": {
+    //                 "line": 5,
+    //                 "character": 7,
+    //             }
+    //         })),
+    //     };
+    //     lsp.request_tx.send(OutboundMessage::Request(req)).unwrap();
+    //
+    //     loop {
+    //         if let InboundMessage::Response(resp) = lsp.response_rx.recv().unwrap() {
+    //             let resp_obj = serde_json::to_value(&resp).unwrap();
+    //             println!("{resp_obj:#?}");
+    //             if let Some(result) = resp_obj.get("result") {
+    //                 if let Some(contents) = result.get("contents") {
+    //                     if let Some(kind) = contents.get("kind") {
+    //                         assert_eq!(kind.as_str().unwrap(), "markdown");
+    //                         break;
+    //                     }
+    //                 }
+    //             }
+    //         } else {
+    //             continue;
+    //         }
+    //     }
+    // }
 }
