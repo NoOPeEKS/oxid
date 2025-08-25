@@ -6,7 +6,11 @@ use std::{
 
 use serde_json::json;
 
-use crate::types::{Notification, Request, Response, ResponseError};
+use crate::get_client_capabilities;
+use crate::{
+    next_id,
+    types::{InitializeParams, Notification, Request, Response, ResponseError},
+};
 
 pub fn process_lsp_message(
     body: &[u8],
@@ -187,6 +191,48 @@ pub struct LspClient {
     response_rx: std::sync::mpsc::Receiver<InboundMessage>,
 }
 
+impl LspClient {
+    fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
+        let req = Request {
+            id: next_id() as i64,
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        let id = req.id;
+
+        self.request_tx.send(OutboundMessage::Request(req))?;
+
+        Ok(id)
+    }
+
+    fn send_notification(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<()> {
+        let noti = Notification {
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        self.request_tx.send(OutboundMessage::Notification(noti))?;
+
+        Ok(())
+    }
+
+    fn initialize(&mut self) -> anyhow::Result<()> {
+        let initialize_params: InitializeParams = get_client_capabilities();
+
+        let initialize_params = match serde_json::to_value(&initialize_params) {
+            Ok(params) => params,
+            Err(_) => anyhow::bail!("Error initializing LSP Client"),
+        };
+
+        let _ = self.send_request("initialize", initialize_params)?;
+
+        // TODO: Send notification initialized once recieved response.
+
+        Ok(())
+    }
+}
+
 /// Messages that the cliend sends to the LSP Server
 pub enum OutboundMessage {
     Request(Request),
@@ -211,6 +257,12 @@ mod tests {
             TextDocumentClientCapabilities,
         },
     };
+
+    #[test]
+    fn new_initialize_api() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+    }
 
     #[test]
     fn initialize_lsp() {
