@@ -230,37 +230,40 @@ impl LspClient {
         let init_req_id = self.send_request("initialize", initialize_params)?;
 
         loop {
-            // Loop until we get a response to the initialize request or an error.
-            match self.recv_message() {
-                Ok(msg) => {
-                    if let InboundMessage::Response(resp) = msg {
-                        if resp.id == init_req_id {
-                            if let Some(result) = resp.result {
-                                if let Some(caps) = result.get("capabilities") {
-                                    match serde_json::from_value::<ServerCapabilities>(caps.clone())
-                                    {
-                                        Ok(server_cap) => {
-                                            self.server_capabilities = server_cap;
-                                        }
-                                        Err(err) => anyhow::bail!(
-                                            "Could not serialize server capabilities: {}",
-                                            err
-                                        ),
-                                    }
-                                    return Ok(());
-                                }
-                            } else {
-                                anyhow::bail!("Did not get any result from initialize response");
-                            }
-                        }
-                    } else if let InboundMessage::Error(err) = msg {
-                        // If error, quit gracefully.
-                        anyhow::bail!("Got a ResponseError on initialize request: {:#?}", err)
-                    } else {
+            let msg = match self.recv_message() {
+                Ok(msg) => msg,
+                Err(err) => anyhow::bail!("Could not initialize the client: {}", err),
+            };
+
+            match msg {
+                InboundMessage::Response(resp) => {
+                    if resp.id != init_req_id {
+                        // If response id does not eq initialize req id continue.
                         continue;
                     }
+
+                    let result = resp.result.ok_or_else(|| {
+                        anyhow::anyhow!("Did not get any result attribute on initialize response")
+                    })?;
+
+                    let capabilities = result.get("capabilities").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No `capabilities` attribute in initialize response `result` attribute."
+                        )
+                    })?;
+
+                    let server_caps: ServerCapabilities =
+                        serde_json::from_value(capabilities.clone()).map_err(|err| {
+                            anyhow::anyhow!("Could not serialize server capabilities: {}", err)
+                        })?;
+
+                    self.server_capabilities = server_caps;
+                    return Ok(());
                 }
-                Err(err) => anyhow::bail!("Could not initialize the client: {}", err),
+                InboundMessage::Error(err) => {
+                    anyhow::bail!("Got a ResponseError on initialize request: {:#?}", err);
+                }
+                _ => continue, // Ignore notifications
             }
         }
     }
