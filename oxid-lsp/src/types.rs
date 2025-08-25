@@ -184,7 +184,7 @@ pub struct Range {
 pub struct TextDocumentItem {
     pub uri: String,
     pub language_id: String,
-    pub version: String,
+    pub version: i32,
     pub text: String,
 }
 

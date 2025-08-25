@@ -6,7 +6,10 @@ use std::{
 
 use serde_json::json;
 
-use crate::{get_client_capabilities, types::ServerCapabilities};
+use crate::{
+    get_client_capabilities,
+    types::{ServerCapabilities, TextDocumentItem},
+};
 use crate::{
     next_id,
     types::{InitializeParams, Notification, Request, Response, ResponseError},
@@ -179,6 +182,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
         request_tx: request_tx.clone(),
         response_rx,
         server_capabilities: ServerCapabilities::default(),
+        initialized: false,
     };
 
     Ok(lsp_client)
@@ -191,34 +195,10 @@ pub struct LspClient {
     request_tx: std::sync::mpsc::Sender<OutboundMessage>,
     response_rx: std::sync::mpsc::Receiver<InboundMessage>,
     server_capabilities: ServerCapabilities,
+    initialized: bool,
 }
 
 impl LspClient {
-    fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
-        let req = Request {
-            id: next_id() as i64,
-            method: method.to_owned(),
-            params: Some(params),
-        };
-
-        let id = req.id;
-
-        self.request_tx.send(OutboundMessage::Request(req))?;
-
-        Ok(id)
-    }
-
-    fn send_notification(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<()> {
-        let noti = Notification {
-            method: method.to_owned(),
-            params: Some(params),
-        };
-
-        self.request_tx.send(OutboundMessage::Notification(noti))?;
-
-        Ok(())
-    }
-
     fn initialize(&mut self) -> anyhow::Result<()> {
         let initialize_params: InitializeParams = get_client_capabilities();
 
@@ -258,6 +238,10 @@ impl LspClient {
                         })?;
 
                     self.server_capabilities = server_caps;
+                    self.initialized = true;
+
+                    // Send Initialized notification
+                    self.send_notification("initialized", json!({}))?;
                     return Ok(());
                 }
                 InboundMessage::Error(err) => {
@@ -266,6 +250,45 @@ impl LspClient {
                 _ => continue, // Ignore notifications
             }
         }
+    }
+
+    fn did_open(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        let params = json!({
+            "textDocument": TextDocumentItem {
+                uri: format!("file://{file_path}"),
+                language_id: "rust".to_owned(),
+                version: 1,
+                text: file_contents.to_owned(),
+            }
+        });
+
+        self.send_notification("textDocument/didOpen", serde_json::to_value(params)?)?;
+        Ok(())
+    }
+
+    fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
+        let req = Request {
+            id: next_id() as i64,
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        let id = req.id;
+
+        self.request_tx.send(OutboundMessage::Request(req))?;
+
+        Ok(id)
+    }
+
+    fn send_notification(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<()> {
+        let noti = Notification {
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        self.request_tx.send(OutboundMessage::Notification(noti))?;
+
+        Ok(())
     }
 
     fn recv_message(&mut self) -> anyhow::Result<InboundMessage> {
@@ -301,6 +324,17 @@ mod tests {
     fn initialize_lsp() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
+    }
+
+    #[test]
+    fn test_did_open() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        if lsp.initialized {
+            let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
+            let fc = String::from("pub fn main() {\n println!(\"hello\");\n}\n");
+            lsp.did_open(&fp, &fc).unwrap();
+        }
     }
 
     // #[test]
