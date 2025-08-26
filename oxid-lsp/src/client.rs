@@ -7,8 +7,8 @@ use std::{
 use serde_json::json;
 
 use crate::{
-    get_client_capabilities,
-    types::{ServerCapabilities, TextDocumentItem},
+    capabilities::get_client_capabilities,
+    types::{Hover, Position, ServerCapabilities, TextDocumentItem},
 };
 use crate::{
     next_id,
@@ -266,6 +266,44 @@ impl LspClient {
         Ok(())
     }
 
+    fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
+        let params = json!({
+            "textDocument": {
+                "uri": format!("file://{}", file_path),
+            },
+            "position": serde_json::to_value(&position)?,
+        });
+        let req_id = self.send_request("textDocument/hover", params)?;
+        loop {
+            match self.recv_message() {
+                Ok(msg) => match msg {
+                    InboundMessage::Response(response) => {
+                        if response.id != req_id {
+                            continue;
+                        }
+
+                        let result = response.result.ok_or_else(|| {
+                            anyhow::anyhow!("Did not recieve a result on hover response!")
+                        })?;
+                        match serde_json::from_value::<Hover>(result) {
+                            Ok(hover_val) => return Ok(hover_val),
+                            Err(err) => anyhow::bail!(
+                                "Could not deserialize response's result into Hover obj: {err}"
+                            ),
+                        }
+                    }
+                    InboundMessage::Error(response_error) => {
+                        anyhow::bail!("Recieved a response error: {response_error:?}")
+                    }
+                    InboundMessage::Notification(_) => {
+                        continue;
+                    }
+                },
+                Err(err) => anyhow::bail!("Failed to recieve hover response: {err}"),
+            }
+        }
+    }
+
     fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
         let req = Request {
             id: next_id() as i64,
@@ -317,13 +355,13 @@ pub enum InboundMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::next_id;
     use crate::types::*;
 
     #[test]
     fn initialize_lsp() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
+        assert!(lsp.initialized);
     }
 
     #[test]
@@ -333,101 +371,66 @@ mod tests {
         if lsp.initialized {
             let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
             let fc = String::from("pub fn main() {\n println!(\"hello\");\n}\n");
-            lsp.did_open(&fp, &fc).unwrap();
+            let res = lsp.did_open(&fp, &fc);
+            assert!(res.is_ok());
         }
     }
 
-    // #[test]
-    // fn hover_request() {
-    //     let lsp = start_lsp().unwrap();
-    //
-    //     let initialization_params = InitializeParams {
-    //         process_id: None,
-    //         client_info: Some(ClientInfo {
-    //             name: "oxid".to_string(),
-    //             version: Some("0.1.0".to_string()),
-    //         }),
-    //         locale: None,
-    //         root_uri: Some("file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs".into()),
-    //         initialization_options: None,
-    //         capabilities: ClientCapabilities {
-    //             text_document: Some(TextDocumentClientCapabilities {
-    //                 hover: Some(HoverClientCapabilities {
-    //                     dynamic_registration: Some(false),
-    //                     content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
-    //                 }),
-    //             }),
-    //             ..Default::default()
-    //         },
-    //         ..Default::default()
-    //     };
-    //
-    //     let initialize_request = Request {
-    //         id: next_id() as i64,
-    //         method: "initialize".to_string(),
-    //         params: Some(serde_json::to_value(&initialization_params).unwrap()),
-    //     };
-    //     lsp.request_tx
-    //         .send(OutboundMessage::Request(initialize_request))
-    //         .unwrap();
-    //
-    //     let _ = lsp.response_rx.recv().unwrap(); // recieve initialize response
-    //
-    //     let initialized_notification = Notification {
-    //         method: "initialized".to_string(),
-    //         params: None,
-    //     };
-    //     lsp.request_tx
-    //         .send(OutboundMessage::Notification(initialized_notification))
-    //         .unwrap();
-    //
-    //     let notif = Notification {
-    //         method: "textDocument/didOpen".to_string(),
-    //         params: Some(json!({
-    //           "textDocument": {
-    //             "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs",
-    //             "languageId": "rust",
-    //             "version": 1,
-    //             "text": "use std::sync::atomic::AtomicUsize;\n\npub mod client;\npub mod types;\n\nstatic ID: AtomicUsize = AtomicUsize::new(1);\n\nfn next_id() -> usize {\n    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)\n}\n"
-    //           }
-    //         })),
-    //     };
-    //     lsp.request_tx
-    //         .send(OutboundMessage::Notification(notif))
-    //         .unwrap();
-    //
-    //     let _ = lsp.response_rx.recv().unwrap(); // ignore publish diagnostics
-    //
-    //     let req = Request {
-    //         id: next_id() as i64,
-    //         method: "textDocument/hover".to_string(),
-    //         params: Some(json!({
-    //             "textDocument": {
-    //                 "uri": "file:///home/beri/dev/oxid/oxid-lsp/src/lib.rs"
-    //             },
-    //             "position": {
-    //                 "line": 5,
-    //                 "character": 7,
-    //             }
-    //         })),
-    //     };
-    //     lsp.request_tx.send(OutboundMessage::Request(req)).unwrap();
-    //
-    //     loop {
-    //         if let InboundMessage::Response(resp) = lsp.response_rx.recv().unwrap() {
-    //             let resp_obj = serde_json::to_value(&resp).unwrap();
-    //             println!("{resp_obj:#?}");
-    //             if let Some(result) = resp_obj.get("result") {
-    //                 if let Some(contents) = result.get("contents") {
-    //                     if let Some(kind) = contents.get("kind") {
-    //                         assert_eq!(kind.as_str().unwrap(), "markdown");
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-    //         } else {
-    //             continue;
-    //         }
-    //     }
-    // }
+    #[test]
+    pub fn test_hover() {
+        let mut lsp = start_lsp().unwrap();
+
+        lsp.initialize().unwrap();
+
+        if lsp.initialized {
+            let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
+            let fc: &str = r#"
+use std::sync::atomic::AtomicUsize;
+
+use crate::types::*;
+
+pub mod client;
+pub mod types;
+pub mod capabilities;
+
+static ID: AtomicUsize = AtomicUsize::new(1);
+
+fn next_id() -> usize {
+    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+}
+"#;
+            lsp.did_open(&fp, fc).unwrap();
+
+            // GIVE TIME TO THE LSP FOR ANALYZING THE NEW FILE
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            let hover_response = lsp
+                .hover(
+                    &fp,
+                    Position {
+                        line: 11,
+                        character: 4,
+                    },
+                )
+                .unwrap();
+            let compare_hover = Hover {
+                contents: MarkupContent {
+                    kind: MarkupKind::PlainText,
+                    value: "oxid_lsp\n\nfn next_id() -> usize".to_owned(),
+                },
+                range: Some(Range {
+                    start: Position {
+                        line: 11,
+                        character: 3,
+                    },
+                    end: Position {
+                        line: 11,
+                        character: 10,
+                    },
+                }),
+            };
+
+            assert_eq!(hover_response, compare_hover);
+        }
+    }
 }

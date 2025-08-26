@@ -156,7 +156,7 @@ pub struct HoverClientCapabilities {
     pub content_format: Option<Vec<MarkupKind>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Position {
     pub line: usize,
@@ -173,7 +173,7 @@ pub enum PositionEncodingKind {
     Utf32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq)]
 pub struct Range {
     pub start: Position,
     pub end: Position,
@@ -361,14 +361,14 @@ pub struct Command {
     pub arguments: Option<Vec<serde_json::Value>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MarkupKind {
     PlainText,
     Markdown,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq)]
 pub struct MarkupContent {
     pub kind: MarkupKind,
     pub value: String,
@@ -1382,4 +1382,12 @@ pub enum FileOperationPatternKind {
 pub struct FileOperationPatternOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ignore_case: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Hover {
+    pub contents: MarkupContent,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub range: Option<Range>
 }
