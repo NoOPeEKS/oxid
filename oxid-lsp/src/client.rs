@@ -1,6 +1,7 @@
 use std::{
     io::{BufRead, BufReader, BufWriter, Read, Write},
-    process::{ChildStdin, Command, Stdio},
+    process::{Child, ChildStdin, Command, Stdio},
+    time::{Duration, Instant},
     vec,
 };
 
@@ -183,6 +184,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
         response_rx,
         server_capabilities: ServerCapabilities::default(),
         initialized: false,
+        process: lsp,
     };
 
     Ok(lsp_client)
@@ -196,6 +198,7 @@ pub struct LspClient {
     response_rx: std::sync::mpsc::Receiver<InboundMessage>,
     server_capabilities: ServerCapabilities,
     initialized: bool,
+    process: Child,
 }
 
 impl LspClient {
@@ -336,6 +339,24 @@ impl LspClient {
             anyhow::bail!("Error trying to recieve message");
         }
     }
+
+    fn shutdown(&mut self) -> anyhow::Result<()> {
+        self.send_request("shutdown", serde_json::Value::Null)?;
+        self.send_notification("exit", serde_json::Value::Null)?;
+        let start = Instant::now();
+        let timeout = Duration::from_secs(3);
+        loop {
+            if let Ok(Some(_)) = self.process.try_wait() {
+                self.initialized = false;
+                return Ok(());
+            }
+
+            if start.elapsed() >= timeout {
+                self.initialized = false;
+                self.process.kill()?;
+            }
+        }
+    }
 }
 
 /// Messages that the cliend sends to the LSP Server
@@ -362,6 +383,7 @@ mod tests {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
+        lsp.shutdown().unwrap();
     }
 
     #[test]
@@ -374,6 +396,7 @@ mod tests {
             let res = lsp.did_open(&fp, &fc);
             assert!(res.is_ok());
         }
+        lsp.shutdown().unwrap();
     }
 
     #[test]
@@ -402,7 +425,7 @@ fn next_id() -> usize {
             lsp.did_open(&fp, fc).unwrap();
 
             // GIVE TIME TO THE LSP FOR ANALYZING THE NEW FILE
-            std::thread::sleep(std::time::Duration::from_secs(5));
+            std::thread::sleep(std::time::Duration::from_secs(10));
 
             let hover_response = lsp
                 .hover(
@@ -432,5 +455,6 @@ fn next_id() -> usize {
 
             assert_eq!(hover_response, compare_hover);
         }
+        lsp.shutdown().unwrap();
     }
 }
