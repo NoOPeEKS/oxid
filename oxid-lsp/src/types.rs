@@ -115,7 +115,8 @@ pub struct ClientCapabilities {
 pub struct TextDocumentClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hover: Option<HoverClientCapabilities>,
-    // pub completion: Option<CompletionClientCapabilities>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion: Option<CompletionClientCapabilities>,
     // pub synchronization: Option<TextDocumentSyncClientCapabilities>,
     // pub signature_help: Option<SignatureHelpClientCapabilities>,
     // pub declaration: Option<DeclarationClientCapabilities>,
@@ -144,6 +145,192 @@ pub struct TextDocumentClientCapabilities {
     // pub inline_value: Option<InlineValueClientCapabilities>,
     // pub inlay_hint: Option<InlayHintClientCapabilities>,
     // pub diagnostic: Option<DiagnosticClientCapabilities>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionClientCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_registration: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_item: Option<CompletionItemCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_item_kind:Option<CompletionItemKindCapability>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text_mode: Option<InsertTextMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_list: Option<CompletionListCapability>,
+}
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionItemKindCapability {
+    pub value_set: Option<Vec<CompletionItemKind>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "i32", into = "i32")]
+pub enum CompletionItemKind {
+    Text = 1,
+    Method = 2,
+    Function = 3,
+    Constructor = 4,
+    Field = 5,
+    Variable = 6,
+    Class = 7,
+    Interface = 8,
+    Module = 9,
+    Property = 10,
+    Unit = 11,
+    Value = 12,
+    Enum = 13,
+    Keyword = 14,
+    Snippet = 15,
+    Color = 16,
+    File = 17,
+    Reference = 18,
+    Folder = 19,
+    EnumMember = 20,
+    Constant = 21,
+    Struct = 22,
+    Event = 23,
+    Operator = 24,
+    TypeParameter = 25,
+}
+
+impl From<i32> for CompletionItemKind {
+    fn from(value: i32) -> Self {
+        match value {
+            1 => CompletionItemKind::Text,
+            2 => CompletionItemKind::Method,
+            3 => CompletionItemKind::Function,
+            4 => CompletionItemKind::Constructor,
+            5 => CompletionItemKind::Field,
+            6 => CompletionItemKind::Variable,
+            7 => CompletionItemKind::Class,
+            8 => CompletionItemKind::Interface,
+            9 => CompletionItemKind::Module,
+            10 => CompletionItemKind::Property,
+            11 => CompletionItemKind::Unit,
+            12 => CompletionItemKind::Value,
+            13 => CompletionItemKind::Enum,
+            14 => CompletionItemKind::Keyword,
+            15 => CompletionItemKind::Snippet,
+            16 => CompletionItemKind::Color,
+            17 => CompletionItemKind::File,
+            18 => CompletionItemKind::Reference,
+            19 => CompletionItemKind::Folder,
+            20 => CompletionItemKind::EnumMember,
+            21 => CompletionItemKind::Constant,
+            22 => CompletionItemKind::Struct,
+            23 => CompletionItemKind::Event,
+            24 => CompletionItemKind::Operator,
+            25 => CompletionItemKind::TypeParameter,
+            _ => panic!("Invalid CompletionItemKind value: {}", value),
+        }
+    }
+}
+
+impl From<CompletionItemKind> for i32 {
+    fn from(kind: CompletionItemKind) -> i32 {
+        kind as i32
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionItemCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_characters_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation_format: Option<Vec<MarkupKind>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deprecated_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preselect_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag_support: Option<TagSupport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_replace_support: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_support: Option<ResolveSupport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text_mode_support: Option<InsertTextModeSupport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_details_support: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct InsertTextModeSupport {
+    pub value_set: Vec<InsertTextMode>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveSupport {
+    pub properties: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct TagSupport {
+    pub value_set: Vec<CompletionItemTagKind>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "i32", into = "i32")]
+pub enum CompletionItemTagKind {
+    Deprecated = 1,
+}
+
+impl From<i32> for CompletionItemTagKind {
+    fn from(value: i32) -> Self {
+        match value {
+            1 => CompletionItemTagKind::Deprecated,
+            _ => panic!("Invalid CompletionItemTagKind value: {}", value),
+        }
+    }
+}
+
+impl From<CompletionItemTagKind> for i32 {
+    fn from(kind: CompletionItemTagKind) -> i32 {
+        kind as i32
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionListCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub item_defaults: Option<Vec<String>>,
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "i32", into = "i32")]
+pub enum InsertTextMode {
+    AsIs = 1,
+    AdjustIndentation = 2,
+}
+
+impl From<i32> for InsertTextMode {
+    fn from(value: i32) -> Self {
+        match value {
+            1 => InsertTextMode::AsIs,
+            2 => InsertTextMode::AdjustIndentation,
+            _ => panic!("Invalid InsertTextMode value: {}", value),
+        }
+    }
+}
+
+impl From<InsertTextMode> for i32 {
+    fn from(mode: InsertTextMode) -> i32 {
+        mode as i32
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -1389,5 +1576,5 @@ pub struct FileOperationPatternOptions {
 pub struct Hover {
     pub contents: MarkupContent,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub range: Option<Range>
+    pub range: Option<Range>,
 }

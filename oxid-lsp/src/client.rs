@@ -307,6 +307,10 @@ impl LspClient {
         }
     }
 
+    fn request_completion(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
         let req = Request {
             id: next_id() as i64,
@@ -357,6 +361,7 @@ impl LspClient {
             }
         }
     }
+
 }
 
 /// Messages that the cliend sends to the LSP Server
@@ -454,6 +459,20 @@ fn next_id() -> usize {
             };
 
             assert_eq!(hover_response, compare_hover);
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_completion() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::sy";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(10));
+            let resp = lsp.request_completion().unwrap() // Update params.
         }
         lsp.shutdown().unwrap();
     }
