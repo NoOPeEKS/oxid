@@ -9,7 +9,10 @@ use serde_json::json;
 
 use crate::{
     capabilities::get_client_capabilities,
-    types::{Hover, Position, ServerCapabilities, TextDocumentItem},
+    types::{
+        Hover, Position, ServerCapabilities, TextDocumentIdentifier, TextDocumentItem,
+        TextDocumentPositionParams,
+    },
 };
 use crate::{
     next_id,
@@ -307,8 +310,42 @@ impl LspClient {
         }
     }
 
-    fn request_completion(&mut self) -> anyhow::Result<()> {
-        Ok(())
+    fn request_completion(
+        &mut self,
+        uri: &str,
+        line: usize,
+        character: usize,
+    ) -> anyhow::Result<()> {
+        let params = TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier {
+                uri: uri.to_owned(),
+            },
+            position: Position { line, character },
+        };
+        let req_id = self.send_request("textDocument/completion", serde_json::to_value(params)?)?;
+        loop {
+            match self.recv_message() {
+                Ok(msg) => match msg {
+                    InboundMessage::Response(response) => {
+                        if response.id != req_id {
+                            continue;
+                        }
+                        println!("RESPONSE: {response:#?}");
+                        // TODO: Handle response, deserialize it into structs
+                        // TODO: Decide what the completion request returns (will need to be useful
+                        //       for the editor, so a nice format please.).
+                        return Ok(());
+                    }
+                    InboundMessage::Error(response_error) => {
+                        anyhow::bail!("Recieved a response error: {response_error:?}")
+                    }
+                    InboundMessage::Notification(_) => {
+                        continue;
+                    }
+                },
+                Err(err) => anyhow::bail!("Failed to recieve completion response: {err}"),
+            }
+        }
     }
 
     fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
@@ -361,7 +398,6 @@ impl LspClient {
             }
         }
     }
-
 }
 
 /// Messages that the cliend sends to the LSP Server
@@ -395,6 +431,7 @@ mod tests {
     fn test_did_open() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
+        assert!(lsp.initialized);
         if lsp.initialized {
             let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
             let fc = String::from("pub fn main() {\n println!(\"hello\");\n}\n");
@@ -409,6 +446,7 @@ mod tests {
         let mut lsp = start_lsp().unwrap();
 
         lsp.initialize().unwrap();
+        assert!(lsp.initialized);
 
         if lsp.initialized {
             let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
@@ -467,12 +505,15 @@ fn next_id() -> usize {
     fn test_completion() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
+        assert!(lsp.initialized);
         if lsp.initialized {
             let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
             let fc = "use std::sy";
             lsp.did_open(fp, fc).unwrap();
             std::thread::sleep(std::time::Duration::from_secs(10));
-            let resp = lsp.request_completion().unwrap() // Update params.
+            lsp.request_completion(format!("file://{fp}").as_str(), 0, 10)
+                .unwrap();
+            // TODO: check completion outputs and assert things.
         }
         lsp.shutdown().unwrap();
     }

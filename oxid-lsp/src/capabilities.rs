@@ -54,8 +54,8 @@ pub fn get_client_capabilities() -> InitializeParams {
                                         // .resolve_support(todo!())
                                         .build(),
                                 )
-                                .context_support(false)
                                 .insert_text_mode(InsertTextMode::AsIs)
+                                // .context_support()
                                 // .completion_item_kind()
                                 // .completion_list()
                                 .build(),
