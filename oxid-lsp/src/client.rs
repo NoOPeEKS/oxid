@@ -10,8 +10,8 @@ use serde_json::json;
 use crate::{
     capabilities::get_client_capabilities,
     types::{
-        Hover, Position, ServerCapabilities, TextDocumentIdentifier, TextDocumentItem,
-        TextDocumentPositionParams,
+        CompletionList, Hover, Position, ServerCapabilities, TextDocumentIdentifier,
+        TextDocumentItem, TextDocumentPositionParams,
     },
 };
 use crate::{
@@ -315,7 +315,7 @@ impl LspClient {
         uri: &str,
         line: usize,
         character: usize,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Option<CompletionList>> {
         let params = TextDocumentPositionParams {
             text_document: TextDocumentIdentifier {
                 uri: uri.to_owned(),
@@ -330,11 +330,11 @@ impl LspClient {
                         if response.id != req_id {
                             continue;
                         }
-                        println!("RESPONSE: {response:#?}");
-                        // TODO: Handle response, deserialize it into structs
-                        // TODO: Decide what the completion request returns (will need to be useful
-                        //       for the editor, so a nice format please.).
-                        return Ok(());
+                        if let Some(result) = response.result {
+                            let completion_list = serde_json::from_value::<CompletionList>(result)?;
+                            return Ok(Some(completion_list));
+                        }
+                        return Ok(None);
                     }
                     InboundMessage::Error(response_error) => {
                         anyhow::bail!("Recieved a response error: {response_error:?}")
@@ -510,10 +510,23 @@ fn next_id() -> usize {
             let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
             let fc = "use std::sy";
             lsp.did_open(fp, fc).unwrap();
+
+            // LET LSP PROCESS THE FILE BEFORE COMPLETIONS
             std::thread::sleep(std::time::Duration::from_secs(10));
-            lsp.request_completion(format!("file://{fp}").as_str(), 0, 10)
+
+            let completion = lsp
+                .request_completion(format!("file://{fp}").as_str(), 0, 10)
                 .unwrap();
-            // TODO: check completion outputs and assert things.
+
+            assert!(completion.is_some());
+
+            let completion = completion.unwrap();
+
+            assert!(!completion.items.is_empty());
+            assert_eq!(
+                completion.items.first().unwrap().label,
+                String::from("alloc")
+            );
         }
         lsp.shutdown().unwrap();
     }

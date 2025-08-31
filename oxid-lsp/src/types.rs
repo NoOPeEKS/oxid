@@ -335,6 +335,135 @@ impl From<InsertTextMode> for i32 {
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
+pub struct CompletionList {
+    pub is_incomplete: bool,
+    pub items: Vec<CompletionItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub item_defaults: Option<ItemDefaults>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemDefaults {
+    pub commit_characters: Option<Vec<String>>,
+    pub edit_range: Option<EditRangeKind>,
+    pub insert_text_format: Option<InsertTextFormat>,
+    pub insert_text_mode: Option<InsertTextMode>,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EditRangeKind {
+    Simple(Range),
+    InsertReplace(InsertReplaceRange),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InsertReplaceRange {
+    pub insert: Range,
+    pub replace: Range,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionItem {
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_details: Option<CompletionItemLabelDetails>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<CompletionItemKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<CompletionItemTagKind>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<CompletionItemDocumentationKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deprecated: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preselect: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text_format: Option<InsertTextFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text_mode: Option<InsertTextMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_edit: Option<TextEditKind>, // OR InsertReplaceEdit can also be it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_edit_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_text_edits: Option<Vec<TextEdit>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_characters: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<Command>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TextEditKind {
+    TextEdit(TextEdit),
+    InsertReplaceEdit(InsertReplaceEdit)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct InsertReplaceEdit {
+    pub new_text: String,
+    pub insert: Range,
+    pub replace: Range,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CompletionItemDocumentationKind {
+    Simple(String),
+    Markup(MarkupContent),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "i32", into = "i32")]
+pub enum InsertTextFormat {
+    PlainText = 1,
+    Snippet = 2,
+}
+
+impl From<i32> for InsertTextFormat {
+    fn from(value: i32) -> Self {
+        match value {
+            1 => InsertTextFormat::PlainText,
+            2 => InsertTextFormat::Snippet,
+            _ => panic!("Invalid InsertTextFormat value: {}", value),
+        }
+    }
+}
+
+impl From<InsertTextFormat> for i32 {
+    fn from(value: InsertTextFormat) -> i32 {
+        value as i32
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletionItemLabelDetails {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
 pub struct HoverClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_registration: Option<bool>,
