@@ -1167,7 +1167,7 @@ pub struct TextDocumentSyncOptions {
     pub change: Option<TextDocumentSyncKind>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(from = "i32", into = "i32")]
 pub enum TextDocumentSyncKind {
     None = 0,
@@ -1706,4 +1706,33 @@ pub struct Hover {
     pub contents: MarkupContent,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub range: Option<Range>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct DidChangeTextDocumentParams {
+    pub text_document: VersionedTextDocumentIdentifier,
+    pub content_changes: Vec<TextDocumentContentChangeEvent>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TextDocumentContentChangeEvent {
+    Full(FullTextDocumentContentChangeEvent),
+    Incremental(IncrementalTextDocumentContentChangeEvent)
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FullTextDocumentContentChangeEvent {
+    pub text: String
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct IncrementalTextDocumentContentChangeEvent {
+    pub range: Range,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub range_length: Option<usize>,
 }

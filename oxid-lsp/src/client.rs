@@ -10,8 +10,9 @@ use serde_json::json;
 use crate::{
     capabilities::get_client_capabilities,
     types::{
-        CompletionList, Hover, Position, ServerCapabilities, TextDocumentIdentifier,
-        TextDocumentItem, TextDocumentPositionParams,
+        CompletionList, DidChangeTextDocumentParams, FullTextDocumentContentChangeEvent, Hover,
+        Position, ServerCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+        TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier,
     },
 };
 use crate::{
@@ -272,6 +273,35 @@ impl LspClient {
         Ok(())
     }
 
+    fn did_change(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        // TODO: In the future, handle differences between Full sync and Incremental sync.
+        // let sync_kind = match &self.server_capabilities.text_document_sync {
+        //     Some(sync) => match sync.change {
+        //         Some(TextDocumentSyncKind::Full) | None => TextDocumentSyncKind::Full,
+        //         Some(TextDocumentSyncKind::Incremental) => TextDocumentSyncKind::Incremental,
+        //         _ => TextDocumentSyncKind::Full,
+        //     },
+        //     None => TextDocumentSyncKind::Full,
+        // };
+        // if sync_kind == TextDocumentSyncKind::Incremental {
+        //     // TODO: Handle incremental and calculate changes.
+        // }
+        // For now, we just do full sync everytime.
+        let params = DidChangeTextDocumentParams {
+            text_document: VersionedTextDocumentIdentifier {
+                uri: format!("file://{file_path}"),
+                version: 1,
+            },
+            content_changes: vec![TextDocumentContentChangeEvent::Full(
+                FullTextDocumentContentChangeEvent {
+                    text: file_contents.to_owned(),
+                },
+            )],
+        };
+        self.send_notification("textDocument/didChange", serde_json::to_value(params)?)?;
+        Ok(())
+    }
+
     fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
         let params = json!({
             "textDocument": {
@@ -529,5 +559,36 @@ fn next_id() -> usize {
             );
         }
         lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_did_change() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::thread;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+
+            // We make a completion request to show that it actually takes into account
+            // that the file changed to make the completion.
+            std::thread::sleep(Duration::from_secs(3));
+            let completion = lsp
+                .request_completion(format!("file://{fp}").as_str(), 0, 23)
+                .unwrap();
+
+            // Just compare that the recommendation makes sense.
+            assert!(completion.is_some());
+            assert_eq!(
+                completion.unwrap().items.first().unwrap().label,
+                String::from("IntoIter")
+            );
+            lsp.shutdown().unwrap();
+        }
     }
 }
