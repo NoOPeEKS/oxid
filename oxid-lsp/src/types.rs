@@ -117,7 +117,7 @@ pub struct TextDocumentClientCapabilities {
     pub hover: Option<HoverClientCapabilities>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion: Option<CompletionClientCapabilities>,
-    // pub synchronization: Option<TextDocumentSyncClientCapabilities>,
+    pub synchronization: Option<TextDocumentSyncClientCapabilities>,
     // pub signature_help: Option<SignatureHelpClientCapabilities>,
     // pub declaration: Option<DeclarationClientCapabilities>,
     // pub definition: Option<DefinitionClientCapabilities>,
@@ -145,6 +145,19 @@ pub struct TextDocumentClientCapabilities {
     // pub inline_value: Option<InlineValueClientCapabilities>,
     // pub inlay_hint: Option<InlayHintClientCapabilities>,
     // pub diagnostic: Option<DiagnosticClientCapabilities>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct TextDocumentSyncClientCapabilities {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_registration: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_save: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_save_until: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did_save: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -504,7 +517,7 @@ pub struct TextDocumentItem {
     pub text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct TextDocumentIdentifier {
     pub uri: String,
@@ -1165,6 +1178,26 @@ pub struct TextDocumentSyncOptions {
     pub open_close: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub change: Option<TextDocumentSyncKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_save: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub will_save_wait_until: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub save: Option<TextDocumentSyncSaveOptions>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TextDocumentSyncSaveOptions {
+    Simple(bool),
+    Options(SaveOptions)
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_text: Option<bool>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -1735,4 +1768,12 @@ pub struct IncrementalTextDocumentContentChangeEvent {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub range_length: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DidSaveTextDocumentParams {
+    pub text_document: TextDocumentIdentifier,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
 }

@@ -10,9 +10,10 @@ use serde_json::json;
 use crate::{
     capabilities::get_client_capabilities,
     types::{
-        CompletionList, DidChangeTextDocumentParams, FullTextDocumentContentChangeEvent, Hover,
-        Position, ServerCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
-        TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier,
+        CompletionList, DidChangeTextDocumentParams, DidSaveTextDocumentParams,
+        FullTextDocumentContentChangeEvent, Hover, Position, ServerCapabilities,
+        TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+        TextDocumentPositionParams, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier,
     },
 };
 use crate::{
@@ -299,6 +300,41 @@ impl LspClient {
             )],
         };
         self.send_notification("textDocument/didChange", serde_json::to_value(params)?)?;
+        Ok(())
+    }
+
+    fn did_save(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        let include_text = match &self.server_capabilities.text_document_sync {
+            Some(td_sync_cap) => match &td_sync_cap.save {
+                Some(save_options) => match save_options {
+                    TextDocumentSyncSaveOptions::Simple(_) => None,
+                    TextDocumentSyncSaveOptions::Options(options) => match options.include_text {
+                        Some(boolean) => {
+                            if boolean {
+                                Some(file_contents.to_string())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
+                    },
+                },
+                None => {
+                    anyhow::bail!("Server did not have save options");
+                }
+            },
+            None => anyhow::bail!("Server did not have textDocumentSync capabilities"),
+        };
+
+        let params = DidSaveTextDocumentParams {
+            text_document: TextDocumentIdentifier {
+                uri: format!("file://{file_path}"),
+            },
+            text: include_text,
+        };
+
+        self.send_notification("textDocument/didSave", serde_json::to_value(params)?)?;
+
         Ok(())
     }
 
@@ -590,5 +626,23 @@ fn next_id() -> usize {
             );
             lsp.shutdown().unwrap();
         }
+    }
+
+    #[test]
+    fn test_did_save() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::thread;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+            lsp.did_save(fp, fc_new).unwrap();
+        }
+        lsp.shutdown().unwrap();
     }
 }

@@ -2,6 +2,7 @@ use crate::types::{
     ClientCapabilities, ClientInfo, CompletionClientCapabilities, CompletionItemCapability,
     CompletionItemTagKind, HoverClientCapabilities, InitializeParams, InsertTextMode,
     InsertTextModeSupport, MarkupKind, TagSupport, TextDocumentClientCapabilities,
+    TextDocumentSyncClientCapabilities,
 };
 
 /// Defines the capabilities supported by Oxid's LSP Client
@@ -20,6 +21,14 @@ pub fn get_client_capabilities() -> InitializeParams {
             ClientCapabilities::builder()
                 .text_document(
                     TextDocumentClientCapabilities::builder()
+                        .synchronization(
+                            TextDocumentSyncClientCapabilities::builder()
+                                .did_save(true)
+                                .will_save(false)
+                                .will_save_until(false)
+                                .dynamic_registration(false)
+                                .build(),
+                        )
                         .hover(
                             HoverClientCapabilities::builder()
                                 .dynamic_registration(false)
