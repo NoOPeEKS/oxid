@@ -1,0 +1,729 @@
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+    process::{Child, ChildStdin, Command, Stdio},
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+    vec,
+};
+
+use serde_json::json;
+
+use crate::{
+    capabilities::get_client_capabilities,
+    types::{
+        CompletionList, Diagnostic, DidChangeTextDocumentParams, DidSaveTextDocumentParams,
+        FullTextDocumentContentChangeEvent, Hover, Position, PublishDiagnosticParams,
+        ServerCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+        TextDocumentItem, TextDocumentPositionParams, TextDocumentSyncCapability,
+        TextDocumentSyncKind, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier,
+    },
+};
+use crate::{
+    next_id,
+    types::{InitializeParams, Notification, Request, Response, ResponseError},
+};
+
+pub fn process_lsp_message(
+    body: &[u8],
+    rtx: &std::sync::mpsc::Sender<InboundMessage>,
+    diagnostics: &Arc<Mutex<HashMap<String, Vec<Diagnostic>>>>,
+) -> anyhow::Result<()> {
+    let body = String::from_utf8_lossy(body);
+    let res: serde_json::Value = serde_json::from_str(&body)?;
+
+    // If it has error param, it's just a response error type.
+    if let Some(error) = res.get("error") {
+        let code = error["code"].as_i64().unwrap(); // Should never fail.
+        let message = error["message"].as_str().unwrap();
+        let data = error.get("data").cloned();
+
+        let rsp_error = ResponseError {
+            code,
+            message: message.to_string(),
+            data,
+        };
+        rtx.send(InboundMessage::Error(rsp_error))?;
+        return Ok(());
+    }
+
+    // If it's got an id, its just a normal response.
+    if let Some(id) = res.get("id") {
+        let id = id.as_i64().unwrap();
+        let result = res["result"].clone();
+        let response = Response {
+            id,
+            result: Some(result),
+            error: None,
+        };
+        rtx.send(InboundMessage::Response(response))?;
+    } else {
+        // If it hasn't got an id and has method, its a notification
+        let method = res["method"].as_str().unwrap().to_string();
+        let params = res["params"].clone();
+
+        if method == "textDocument/publishDiagnostics" {
+            match serde_json::from_value::<PublishDiagnosticParams>(params.clone()) {
+                Ok(diagnostic_params) => {
+                    let mut diag_map = diagnostics.lock().map_err(|_| {
+                        anyhow::anyhow!("Error acquiring the Mutex Lock of the diagnostics map")
+                    })?;
+                    let path = diagnostic_params
+                        .uri
+                        .trim_start_matches("file://")
+                        .to_string();
+                    diag_map.insert(path, diagnostic_params.diagnostics);
+                }
+                Err(_) => {
+                    anyhow::bail!("Got an error deserializing the diagnostics params");
+                }
+            }
+        }
+
+        let notif = Notification {
+            method,
+            params: Some(params),
+        };
+        rtx.send(InboundMessage::Notification(notif))?
+    }
+
+    Ok(())
+}
+
+/// Take a program's Stdin and send a serialized LSP request.
+pub fn lsp_send_request(stdin: &mut BufWriter<ChildStdin>, req: &Request) -> anyhow::Result<()> {
+    let req = json!({
+        "jsonrpc": "2.0",
+        "id": req.id,
+        "method": req.method,
+        "params": req.params,
+    });
+
+    let body = serde_json::to_string(&req)?;
+    let req = format!("Content-Length: {}\r\n\r\n{}", body.len(), body);
+    stdin.write_all(req.as_bytes())?;
+    stdin.flush()?;
+
+    Ok(())
+}
+
+/// Take a program's Stdin and send a serialized LSP notification.
+pub fn lsp_send_notification(
+    stdin: &mut BufWriter<ChildStdin>,
+    notification: &Notification,
+) -> anyhow::Result<()> {
+    let req = json!({
+        "jsonrpc": "2.0",
+        "method": notification.method,
+        "params": notification.params,
+    });
+
+    let body = serde_json::to_string(&req)?;
+    let req = format!("Content-Length: {}\r\n\r\n{}", body.len(), body);
+    stdin.write_all(req.as_bytes())?;
+    stdin.flush()?;
+
+    Ok(())
+}
+
+pub fn start_lsp() -> anyhow::Result<LspClient> {
+    let mut lsp = Command::new("rust-analyzer")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+    let stdin = lsp.stdin.take().unwrap();
+    let stdout = lsp.stdout.take().unwrap();
+
+    let (request_tx, request_rx) = std::sync::mpsc::channel::<OutboundMessage>();
+    let (response_tx, response_rx) = std::sync::mpsc::channel::<InboundMessage>();
+
+    let diagnostics = Arc::new(Mutex::new(HashMap::<String, Vec<Diagnostic>>::new()));
+    let diagnostics_clone = Arc::clone(&diagnostics);
+
+    // Sends requests from the client to the LSP Server's stdin
+    std::thread::spawn(move || {
+        let mut stdin = BufWriter::new(stdin);
+        while let Ok(message) = request_rx.recv() {
+            match message {
+                OutboundMessage::Request(req) => {
+                    let _ = lsp_send_request(&mut stdin, &req);
+                }
+                OutboundMessage::Notification(not) => {
+                    let _ = lsp_send_notification(&mut stdin, &not);
+                }
+            }
+        }
+    });
+
+    // Recieves responses from the LSP Server's stdout
+    std::thread::spawn(move || {
+        let mut reader = BufReader::new(stdout);
+
+        loop {
+            let mut line = String::new();
+            let read = match reader.read_line(&mut line) {
+                Ok(n) => n,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            if read == 0 {
+                // 0 means EOF, we're finished.
+                break;
+            }
+
+            if line.starts_with("Content-Length: ") {
+                let len = match line
+                    .trim_start_matches("Content-Length: ")
+                    .trim()
+                    .parse::<usize>()
+                {
+                    Ok(len) => len,
+                    Err(_) => {
+                        // Invalid content length, just continue.
+                        continue;
+                    }
+                };
+
+                let mut empty_line = String::new();
+                if reader.read_line(&mut empty_line).is_err() {
+                    continue;
+                }
+
+                let mut response_body = vec![0; len];
+                if reader.read_exact(&mut response_body).is_err() {
+                    continue;
+                }
+
+                match process_lsp_message(&response_body, &response_tx.clone(), &diagnostics_clone)
+                {
+                    Ok(_) => (),
+                    Err(_) => {
+                        continue;
+                    }
+                }
+            } else {
+                // Invalid message, just continue to next iter
+                continue;
+            }
+        }
+    });
+
+    let lsp_client = LspClient {
+        request_tx: request_tx.clone(),
+        response_rx,
+        server_capabilities: ServerCapabilities::default(),
+        initialized: false,
+        process: lsp,
+        diagnostics,
+    };
+
+    Ok(lsp_client)
+}
+
+/// LspClient struct containing everything necessary to communicate with
+/// an LSP Server.
+#[derive(Debug)]
+pub struct LspClient {
+    request_tx: std::sync::mpsc::Sender<OutboundMessage>,
+    response_rx: std::sync::mpsc::Receiver<InboundMessage>,
+    server_capabilities: ServerCapabilities,
+    initialized: bool,
+    process: Child,
+    diagnostics: Arc<Mutex<HashMap<String, Vec<Diagnostic>>>>,
+}
+
+impl LspClient {
+    fn initialize(&mut self) -> anyhow::Result<()> {
+        let initialize_params: InitializeParams = get_client_capabilities();
+
+        let initialize_params = match serde_json::to_value(&initialize_params) {
+            Ok(params) => params,
+            Err(_) => anyhow::bail!("Error initializing LSP Client"),
+        };
+
+        let init_req_id = self.send_request("initialize", initialize_params)?;
+
+        loop {
+            let msg = match self.recv_message() {
+                Ok(msg) => msg,
+                Err(err) => anyhow::bail!("Could not initialize the client: {}", err),
+            };
+
+            match msg {
+                InboundMessage::Response(resp) => {
+                    if resp.id != init_req_id {
+                        // If response id does not eq initialize req id continue.
+                        continue;
+                    }
+
+                    let result = resp.result.ok_or_else(|| {
+                        anyhow::anyhow!("Did not get any result attribute on initialize response")
+                    })?;
+
+                    let capabilities = result.get("capabilities").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No `capabilities` attribute in initialize response `result` attribute."
+                        )
+                    })?;
+
+                    let server_caps: ServerCapabilities =
+                        serde_json::from_value(capabilities.clone()).map_err(|err| {
+                            anyhow::anyhow!("Could not serialize server capabilities: {}", err)
+                        })?;
+
+                    self.server_capabilities = server_caps;
+                    self.initialized = true;
+
+                    // Send Initialized notification
+                    self.send_notification("initialized", json!({}))?;
+                    return Ok(());
+                }
+                InboundMessage::Error(err) => {
+                    anyhow::bail!("Got a ResponseError on initialize request: {:#?}", err);
+                }
+                _ => continue, // Ignore notifications
+            }
+        }
+    }
+
+    fn did_open(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        let params = json!({
+            "textDocument": TextDocumentItem {
+                uri: format!("file://{file_path}"),
+                language_id: "rust".to_owned(),
+                version: 1,
+                text: file_contents.to_owned(),
+            }
+        });
+
+        self.send_notification("textDocument/didOpen", serde_json::to_value(params)?)?;
+        Ok(())
+    }
+
+    fn did_change(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        // TODO: In the future, handle differences between Full sync and Incremental sync.
+        // let sync_kind = match &self.server_capabilities.text_document_sync {
+        //     Some(sync) => match sync.change {
+        //         Some(TextDocumentSyncKind::Full) | None => TextDocumentSyncKind::Full,
+        //         Some(TextDocumentSyncKind::Incremental) => TextDocumentSyncKind::Incremental,
+        //         _ => TextDocumentSyncKind::Full,
+        //     },
+        //     None => TextDocumentSyncKind::Full,
+        // };
+        // if sync_kind == TextDocumentSyncKind::Incremental {
+        //     // TODO: Handle incremental and calculate changes.
+        // }
+        // For now, we just do full sync everytime.
+        let params = DidChangeTextDocumentParams {
+            text_document: VersionedTextDocumentIdentifier {
+                uri: format!("file://{file_path}"),
+                version: 1,
+            },
+            content_changes: vec![TextDocumentContentChangeEvent::Full(
+                FullTextDocumentContentChangeEvent {
+                    text: file_contents.to_owned(),
+                },
+            )],
+        };
+        self.send_notification("textDocument/didChange", serde_json::to_value(params)?)?;
+        Ok(())
+    }
+
+    fn did_save(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+        let include_text = match &self.server_capabilities.text_document_sync {
+            Some(td_sync_cap_kind) => match td_sync_cap_kind {
+                TextDocumentSyncCapability::Options(save_options) => match &save_options.save {
+                    Some(save_options) => match save_options {
+                        TextDocumentSyncSaveOptions::Simple(_) => None,
+                        TextDocumentSyncSaveOptions::Options(options) => match options.include_text
+                        {
+                            Some(boolean) => {
+                                if boolean {
+                                    Some(file_contents.to_string())
+                                } else {
+                                    None
+                                }
+                            }
+                            None => None,
+                        },
+                    },
+                    None => {
+                        anyhow::bail!("Server did not have save options");
+                    }
+                },
+                TextDocumentSyncCapability::Kind(kind) => {
+                    match kind {
+                        TextDocumentSyncKind::None => Some(file_contents.to_string()),
+                        TextDocumentSyncKind::Full => Some(file_contents.to_string()),
+                        TextDocumentSyncKind::Incremental => None, // We don't handle Incremental sync yet.
+                    }
+                }
+            },
+            None => anyhow::bail!("Server did not have textDocumentSync capabilities"),
+        };
+
+        let params = DidSaveTextDocumentParams {
+            text_document: TextDocumentIdentifier {
+                uri: format!("file://{file_path}"),
+            },
+            text: include_text.clone(),
+        };
+
+        self.send_notification("textDocument/didSave", serde_json::to_value(params)?)?;
+
+        Ok(())
+    }
+
+    fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
+        let params = json!({
+            "textDocument": {
+                "uri": format!("file://{}", file_path),
+            },
+            "position": serde_json::to_value(&position)?,
+        });
+        let req_id = self.send_request("textDocument/hover", params)?;
+        loop {
+            match self.recv_message() {
+                Ok(msg) => match msg {
+                    InboundMessage::Response(response) => {
+                        if response.id != req_id {
+                            continue;
+                        }
+
+                        let result = response.result.ok_or_else(|| {
+                            anyhow::anyhow!("Did not recieve a result on hover response!")
+                        })?;
+                        match serde_json::from_value::<Hover>(result) {
+                            Ok(hover_val) => return Ok(hover_val),
+                            Err(err) => anyhow::bail!(
+                                "Could not deserialize response's result into Hover obj: {err}"
+                            ),
+                        }
+                    }
+                    InboundMessage::Error(response_error) => {
+                        anyhow::bail!("Recieved a response error: {response_error:?}")
+                    }
+                    InboundMessage::Notification(_) => {
+                        continue;
+                    }
+                },
+                Err(err) => anyhow::bail!("Failed to recieve hover response: {err}"),
+            }
+        }
+    }
+
+    fn request_completion(
+        &mut self,
+        uri: &str,
+        line: usize,
+        character: usize,
+    ) -> anyhow::Result<Option<CompletionList>> {
+        let params = TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier {
+                uri: uri.to_owned(),
+            },
+            position: Position { line, character },
+        };
+        let req_id = self.send_request("textDocument/completion", serde_json::to_value(params)?)?;
+        loop {
+            match self.recv_message() {
+                Ok(msg) => match msg {
+                    InboundMessage::Response(response) => {
+                        if response.id != req_id {
+                            continue;
+                        }
+                        if let Some(result) = response.result {
+                            let completion_list = serde_json::from_value::<CompletionList>(result)?;
+                            return Ok(Some(completion_list));
+                        }
+                        return Ok(None);
+                    }
+                    InboundMessage::Error(response_error) => {
+                        anyhow::bail!("Recieved a response error: {response_error:?}")
+                    }
+                    InboundMessage::Notification(_) => {
+                        continue;
+                    }
+                },
+                Err(err) => anyhow::bail!("Failed to recieve completion response: {err}"),
+            }
+        }
+    }
+
+    fn get_file_diagnostic(&mut self, file_path: &str) -> anyhow::Result<Option<Vec<Diagnostic>>> {
+        match self.diagnostics.lock() {
+            Ok(diagnostics_map) => Ok(diagnostics_map.get(file_path).cloned()),
+            Err(_) => anyhow::bail!("Failed to acquire lock on diagnostics"),
+        }
+    }
+
+    fn send_request(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<i64> {
+        let req = Request {
+            id: next_id() as i64,
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        let id = req.id;
+
+        self.request_tx.send(OutboundMessage::Request(req))?;
+
+        Ok(id)
+    }
+
+    fn send_notification(&mut self, method: &str, params: serde_json::Value) -> anyhow::Result<()> {
+        let noti = Notification {
+            method: method.to_owned(),
+            params: Some(params),
+        };
+
+        self.request_tx.send(OutboundMessage::Notification(noti))?;
+
+        Ok(())
+    }
+
+    fn recv_message(&mut self) -> anyhow::Result<InboundMessage> {
+        if let Ok(msg) = self.response_rx.recv() {
+            Ok(msg)
+        } else {
+            anyhow::bail!("Error trying to recieve message");
+        }
+    }
+
+    fn shutdown(&mut self) -> anyhow::Result<()> {
+        self.send_request("shutdown", serde_json::Value::Null)?;
+        self.send_notification("exit", serde_json::Value::Null)?;
+        let start = Instant::now();
+        let timeout = Duration::from_secs(3);
+        loop {
+            if let Ok(Some(_)) = self.process.try_wait() {
+                self.initialized = false;
+                return Ok(());
+            }
+
+            if start.elapsed() >= timeout {
+                self.initialized = false;
+                self.process.kill()?;
+            }
+        }
+    }
+}
+
+/// Messages that the cliend sends to the LSP Server
+pub enum OutboundMessage {
+    Request(Request),
+    Notification(Notification),
+}
+
+/// Messages that the client can receive from the LSP Server
+#[derive(Debug)]
+pub enum InboundMessage {
+    Response(Response),
+    Error(ResponseError),
+    Notification(Notification),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::*;
+
+    #[test]
+    fn initialize_lsp() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_did_open() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
+            let fc = String::from("pub fn main() {\n println!(\"hello\");\n}\n");
+            let res = lsp.did_open(&fp, &fc);
+            assert!(res.is_ok());
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    pub fn test_hover() {
+        let mut lsp = start_lsp().unwrap();
+
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+
+        if lsp.initialized {
+            let fp = String::from("/home/beri/dev/oxid/oxid-lsp/src/lib.rs");
+            let fc: &str = r#"
+use std::sync::atomic::AtomicUsize;
+
+use crate::types::*;
+
+pub mod client;
+pub mod types;
+pub mod capabilities;
+
+static ID: AtomicUsize = AtomicUsize::new(1);
+
+fn next_id() -> usize {
+    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+}
+"#;
+            lsp.did_open(&fp, fc).unwrap();
+
+            // GIVE TIME TO THE LSP FOR ANALYZING THE NEW FILE
+            std::thread::sleep(std::time::Duration::from_secs(10));
+
+            let hover_response = lsp
+                .hover(
+                    &fp,
+                    Position {
+                        line: 11,
+                        character: 4,
+                    },
+                )
+                .unwrap();
+            let compare_hover = Hover {
+                contents: MarkupContent {
+                    kind: MarkupKind::PlainText,
+                    value: "oxid_lsp\n\nfn next_id() -> usize".to_owned(),
+                },
+                range: Some(Range {
+                    start: Position {
+                        line: 11,
+                        character: 3,
+                    },
+                    end: Position {
+                        line: 11,
+                        character: 10,
+                    },
+                }),
+            };
+
+            assert_eq!(hover_response, compare_hover);
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_completion() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::sy";
+            lsp.did_open(fp, fc).unwrap();
+
+            // LET LSP PROCESS THE FILE BEFORE COMPLETIONS
+            std::thread::sleep(std::time::Duration::from_secs(10));
+
+            let completion = lsp
+                .request_completion(format!("file://{fp}").as_str(), 0, 10)
+                .unwrap();
+
+            assert!(completion.is_some());
+
+            let completion = completion.unwrap();
+
+            assert!(!completion.items.is_empty());
+            assert_eq!(
+                completion.items.first().unwrap().label,
+                String::from("alloc")
+            );
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_did_change() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::thread;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+
+            // We make a completion request to show that it actually takes into account
+            // that the file changed to make the completion.
+            std::thread::sleep(Duration::from_secs(3));
+            let completion = lsp
+                .request_completion(format!("file://{fp}").as_str(), 0, 23)
+                .unwrap();
+
+            // Just compare that the recommendation makes sense.
+            assert!(completion.is_some());
+            assert_eq!(
+                completion.unwrap().items.first().unwrap().label,
+                String::from("IntoIter")
+            );
+            lsp.shutdown().unwrap();
+        }
+    }
+
+    #[test]
+    fn test_did_save() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "use std::thread;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+            lsp.did_save(fp, fc_new).unwrap();
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn get_diagnostics() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "not valid rust code at all;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            lsp.did_save(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let diags = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags.is_empty());
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+            lsp.did_save(fp, fc_new).unwrap();
+
+            std::thread::sleep(Duration::from_secs(3));
+            let diags2 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags2.is_empty());
+
+            std::thread::sleep(Duration::from_secs(3));
+            let diags3 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags3.is_empty());
+
+            assert_eq!(diags2, diags3);
+            assert_ne!(diags, diags2);
+            assert_ne!(diags, diags3);
+        }
+        lsp.shutdown().unwrap();
+    }
+}

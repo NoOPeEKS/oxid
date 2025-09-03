@@ -1,14 +1,13 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use std::sync::atomic::AtomicUsize;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use crate::types::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub mod client;
+pub mod types;
+pub mod capabilities;
+
+static ID: AtomicUsize = AtomicUsize::new(1);
+
+fn next_id() -> usize {
+    ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
 }

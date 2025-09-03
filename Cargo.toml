@@ -4,3 +4,7 @@ members = [
   "oxid",
   "oxid-lsp"
 ]
+
+[workspace.dependencies]
+anyhow = "1.0.98"
+tokio = { version = "1.47.1", features = ["full"]}

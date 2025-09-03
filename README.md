@@ -16,10 +16,6 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 - `h`, `j`, `k`, `l` - Move cursor left, down, up, right
 - Familiar vim keybindings for natural text navigation
 
-### 📜 **Viewport Management**
-- **Smart Scrolling**: Automatic viewport adjustment
-- **Line Numbers**: Clean, minimal line number display by default
-
 ### 🖥️ **User Interface**
 - **Status Bar**: Shows current mode and cursor position
 - **Responsive Layout**: Adapts to terminal size
@@ -45,7 +41,7 @@ cargo build --release
 
 3. **Run the editor**
 ```bash
-cargo run
+cargo run -- /path/to/file
 ```
 As of now, the editor will either open an existing file or create a new one. It does not currently support multiple buffers nor opening directories.
 
@@ -119,7 +115,7 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [ ] Color scheme
 
 - [ ] **Visual Improvements**
-  - [ ] UI enhancement with colors, borders... [Core]
+  - [ ] UI enhancement with colors, borders... [Core Milestone]
 
 
 ### 🔍 **Navigation**
@@ -129,6 +125,9 @@ As of now, the editor will either open an existing file or create a new one. It 
 ### 🧩 **Developer Tools**
 - [ ] **Integration Features**
   - [ ] LSP (Language Server Protocol) support
+    - [ ] Auto-completion [LSP Milestone]
+    - [ ] Hovering [LSP Milestone]
+    - [ ] Diagnostics [LSP Milestone]
 
 ## 🤝 Contributing
 
