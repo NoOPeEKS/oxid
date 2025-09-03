@@ -134,7 +134,7 @@ pub struct TextDocumentClientCapabilities {
     // pub range_formatting: Option<DocumentRangeFormattingClientCapabilities>,
     // pub on_type_formatting: Option<DocumentOnTypeFormattingClientCapabilities>,
     // pub rename: Option<RenameClientCapabilities>,
-    // pub publish_diagnostics: Option<PublishDiagnosticsClientCapabilities>,
+    // pub publish_diagnostics: Option<PublishDiagnosticsClientCapabilities>, // push diagnostics
     // pub folding_range: Option<FoldingRangeClientCapabilities>,
     // pub selection_range: Option<SelectionRangeClientCapabilities>,
     // pub linked_editing_range: Option<LinkedEditingRangeClientCapabilities>,
@@ -144,7 +144,7 @@ pub struct TextDocumentClientCapabilities {
     // pub type_hierarchy: Option<TypeHierarchyClientCapabilities>,
     // pub inline_value: Option<InlineValueClientCapabilities>,
     // pub inlay_hint: Option<InlayHintClientCapabilities>,
-    // pub diagnostic: Option<DiagnosticClientCapabilities>,
+    // pub diagnostic: Option<DiagnosticClientCapabilities>, // This is pull diagnostics
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -583,7 +583,7 @@ pub struct TextDocumentEdit {
     pub edits: Vec<TextEdit>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 pub struct Location {
     pub uri: String,
     pub range: Range,
@@ -599,14 +599,14 @@ pub struct LocationLink {
     pub target_selection_range: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnostic {
     pub range: Range,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub severity: Option<DiagnosticSeverity>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<i64>,
+    pub code: Option<DiagnosticCode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_description: Option<CodeDescription>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -618,6 +618,13 @@ pub struct Diagnostic {
     pub related_information: Option<Vec<DiagnosticRelatedInformation>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum DiagnosticCode {
+    Integer(i64),
+    String(String)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -670,13 +677,13 @@ impl From<i32> for DiagnosticTag {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 pub struct DiagnosticRelatedInformation {
     pub location: Location,
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 pub struct CodeDescription {
     pub href: String,
 }
@@ -1104,7 +1111,7 @@ pub struct ServerCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub position_encoding: Option<PositionEncodingKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_document_sync: Option<TextDocumentSyncOptions>,
+    pub text_document_sync: Option<TextDocumentSyncCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion_provider: Option<CompletionOptions>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1160,7 +1167,7 @@ pub struct ServerCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inline_value_provider: Option<InlineValueProviderCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub inlay_hint_provider: Option<InlayHintOptions>,
+    pub inlay_hint_provider: Option<InlayHintOptionsKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub diagnostic_provider: Option<DiagnosticProviderCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1169,6 +1176,13 @@ pub struct ServerCapabilities {
     pub workspace: Option<WorkspaceServerCapabilities>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TextDocumentSyncCapability {
+    Options(TextDocumentSyncOptions),
+    Kind(TextDocumentSyncKind)
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -1585,6 +1599,7 @@ pub struct InlineValueOptions {
     pub work_done_progress: Option<bool>,
 }
 
+
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct InlayHintOptions {
@@ -1592,6 +1607,13 @@ pub struct InlayHintOptions {
     pub work_done_progress: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_provider: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum InlayHintOptionsKind {
+    Bool(bool),
+    Options(InlayHintOptions)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1776,4 +1798,13 @@ pub struct DidSaveTextDocumentParams {
     pub text_document: TextDocumentIdentifier,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct PublishDiagnosticParams {
+    pub uri: String,
+    pub diagnostics: Vec<Diagnostic>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<i64>,
 }

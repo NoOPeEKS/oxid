@@ -1,6 +1,8 @@
 use std::{
+    collections::HashMap,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     process::{Child, ChildStdin, Command, Stdio},
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
     vec,
 };
@@ -10,10 +12,11 @@ use serde_json::json;
 use crate::{
     capabilities::get_client_capabilities,
     types::{
-        CompletionList, DidChangeTextDocumentParams, DidSaveTextDocumentParams,
-        FullTextDocumentContentChangeEvent, Hover, Position, ServerCapabilities,
-        TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-        TextDocumentPositionParams, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier,
+        CompletionList, Diagnostic, DidChangeTextDocumentParams, DidSaveTextDocumentParams,
+        FullTextDocumentContentChangeEvent, Hover, Position, PublishDiagnosticParams,
+        ServerCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+        TextDocumentItem, TextDocumentPositionParams, TextDocumentSyncCapability,
+        TextDocumentSyncKind, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier,
     },
 };
 use crate::{
@@ -24,6 +27,7 @@ use crate::{
 pub fn process_lsp_message(
     body: &[u8],
     rtx: &std::sync::mpsc::Sender<InboundMessage>,
+    diagnostics: &Arc<Mutex<HashMap<String, Vec<Diagnostic>>>>,
 ) -> anyhow::Result<()> {
     let body = String::from_utf8_lossy(body);
     let res: serde_json::Value = serde_json::from_str(&body)?;
@@ -57,6 +61,24 @@ pub fn process_lsp_message(
         // If it hasn't got an id and has method, its a notification
         let method = res["method"].as_str().unwrap().to_string();
         let params = res["params"].clone();
+
+        if method == "textDocument/publishDiagnostics" {
+            match serde_json::from_value::<PublishDiagnosticParams>(params.clone()) {
+                Ok(diagnostic_params) => {
+                    let mut diag_map = diagnostics.lock().map_err(|_| {
+                        anyhow::anyhow!("Error acquiring the Mutex Lock of the diagnostics map")
+                    })?;
+                    let path = diagnostic_params
+                        .uri
+                        .trim_start_matches("file://")
+                        .to_string();
+                    diag_map.insert(path, diagnostic_params.diagnostics);
+                }
+                Err(_) => {
+                    anyhow::bail!("Got an error deserializing the diagnostics params");
+                }
+            }
+        }
 
         let notif = Notification {
             method,
@@ -115,6 +137,9 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
     let (request_tx, request_rx) = std::sync::mpsc::channel::<OutboundMessage>();
     let (response_tx, response_rx) = std::sync::mpsc::channel::<InboundMessage>();
 
+    let diagnostics = Arc::new(Mutex::new(HashMap::<String, Vec<Diagnostic>>::new()));
+    let diagnostics_clone = Arc::clone(&diagnostics);
+
     // Sends requests from the client to the LSP Server's stdin
     std::thread::spawn(move || {
         let mut stdin = BufWriter::new(stdin);
@@ -171,7 +196,8 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
                     continue;
                 }
 
-                match process_lsp_message(&response_body, &response_tx.clone()) {
+                match process_lsp_message(&response_body, &response_tx.clone(), &diagnostics_clone)
+                {
                     Ok(_) => (),
                     Err(_) => {
                         continue;
@@ -190,6 +216,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
         server_capabilities: ServerCapabilities::default(),
         initialized: false,
         process: lsp,
+        diagnostics,
     };
 
     Ok(lsp_client)
@@ -204,6 +231,7 @@ pub struct LspClient {
     server_capabilities: ServerCapabilities,
     initialized: bool,
     process: Child,
+    diagnostics: Arc<Mutex<HashMap<String, Vec<Diagnostic>>>>,
 }
 
 impl LspClient {
@@ -305,22 +333,32 @@ impl LspClient {
 
     fn did_save(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
         let include_text = match &self.server_capabilities.text_document_sync {
-            Some(td_sync_cap) => match &td_sync_cap.save {
-                Some(save_options) => match save_options {
-                    TextDocumentSyncSaveOptions::Simple(_) => None,
-                    TextDocumentSyncSaveOptions::Options(options) => match options.include_text {
-                        Some(boolean) => {
-                            if boolean {
-                                Some(file_contents.to_string())
-                            } else {
-                                None
+            Some(td_sync_cap_kind) => match td_sync_cap_kind {
+                TextDocumentSyncCapability::Options(save_options) => match &save_options.save {
+                    Some(save_options) => match save_options {
+                        TextDocumentSyncSaveOptions::Simple(_) => None,
+                        TextDocumentSyncSaveOptions::Options(options) => match options.include_text
+                        {
+                            Some(boolean) => {
+                                if boolean {
+                                    Some(file_contents.to_string())
+                                } else {
+                                    None
+                                }
                             }
-                        }
-                        None => None,
+                            None => None,
+                        },
                     },
+                    None => {
+                        anyhow::bail!("Server did not have save options");
+                    }
                 },
-                None => {
-                    anyhow::bail!("Server did not have save options");
+                TextDocumentSyncCapability::Kind(kind) => {
+                    match kind {
+                        TextDocumentSyncKind::None => Some(file_contents.to_string()),
+                        TextDocumentSyncKind::Full => Some(file_contents.to_string()),
+                        TextDocumentSyncKind::Incremental => None, // We don't handle Incremental sync yet.
+                    }
                 }
             },
             None => anyhow::bail!("Server did not have textDocumentSync capabilities"),
@@ -330,7 +368,7 @@ impl LspClient {
             text_document: TextDocumentIdentifier {
                 uri: format!("file://{file_path}"),
             },
-            text: include_text,
+            text: include_text.clone(),
         };
 
         self.send_notification("textDocument/didSave", serde_json::to_value(params)?)?;
@@ -411,6 +449,13 @@ impl LspClient {
                 },
                 Err(err) => anyhow::bail!("Failed to recieve completion response: {err}"),
             }
+        }
+    }
+
+    fn get_file_diagnostic(&mut self, file_path: &str) -> anyhow::Result<Option<Vec<Diagnostic>>> {
+        match self.diagnostics.lock() {
+            Ok(diagnostics_map) => Ok(diagnostics_map.get(file_path).cloned()),
+            Err(_) => anyhow::bail!("Failed to acquire lock on diagnostics"),
         }
     }
 
@@ -642,6 +687,39 @@ fn next_id() -> usize {
             let fc_new = "use std::sync::mpsc::chan";
             lsp.did_change(fp, fc_new).unwrap();
             lsp.did_save(fp, fc_new).unwrap();
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn get_diagnostics() {
+        // TODO: IMPROVE THIS TEST WITH BETTER ASSERTS
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "not valid rust code at all;";
+            lsp.did_open(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            lsp.did_save(fp, fc).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+
+            let diags = lsp.get_file_diagnostic(fp);
+            assert!(!diags.unwrap().unwrap().is_empty());
+
+            let fc_new = "use std::sync::mpsc::chan";
+            lsp.did_change(fp, fc_new).unwrap();
+            lsp.did_save(fp, fc_new).unwrap();
+
+            std::thread::sleep(Duration::from_secs(3));
+            let diags2 = lsp.get_file_diagnostic(fp);
+            assert!(!diags2.unwrap().unwrap().is_empty());
+
+            std::thread::sleep(Duration::from_secs(3));
+            let diags3 = lsp.get_file_diagnostic(fp);
+            assert!(!diags3.unwrap().unwrap().is_empty());
         }
         lsp.shutdown().unwrap();
     }
