@@ -693,7 +693,6 @@ fn next_id() -> usize {
 
     #[test]
     fn get_diagnostics() {
-        // TODO: IMPROVE THIS TEST WITH BETTER ASSERTS
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
@@ -706,20 +705,24 @@ fn next_id() -> usize {
             lsp.did_save(fp, fc).unwrap();
             std::thread::sleep(Duration::from_secs(3));
 
-            let diags = lsp.get_file_diagnostic(fp);
-            assert!(!diags.unwrap().unwrap().is_empty());
+            let diags = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags.is_empty());
 
             let fc_new = "use std::sync::mpsc::chan";
             lsp.did_change(fp, fc_new).unwrap();
             lsp.did_save(fp, fc_new).unwrap();
 
             std::thread::sleep(Duration::from_secs(3));
-            let diags2 = lsp.get_file_diagnostic(fp);
-            assert!(!diags2.unwrap().unwrap().is_empty());
+            let diags2 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags2.is_empty());
 
             std::thread::sleep(Duration::from_secs(3));
-            let diags3 = lsp.get_file_diagnostic(fp);
-            assert!(!diags3.unwrap().unwrap().is_empty());
+            let diags3 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
+            assert!(!diags3.is_empty());
+
+            assert_eq!(diags2, diags3);
+            assert_ne!(diags, diags2);
+            assert_ne!(diags, diags3);
         }
         lsp.shutdown().unwrap();
     }

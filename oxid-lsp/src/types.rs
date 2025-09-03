@@ -118,6 +118,7 @@ pub struct TextDocumentClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion: Option<CompletionClientCapabilities>,
     pub synchronization: Option<TextDocumentSyncClientCapabilities>,
+    pub publish_diagnostics: Option<PublishDiagnosticsClientCapabilities>,
     // pub signature_help: Option<SignatureHelpClientCapabilities>,
     // pub declaration: Option<DeclarationClientCapabilities>,
     // pub definition: Option<DefinitionClientCapabilities>,
@@ -134,7 +135,6 @@ pub struct TextDocumentClientCapabilities {
     // pub range_formatting: Option<DocumentRangeFormattingClientCapabilities>,
     // pub on_type_formatting: Option<DocumentOnTypeFormattingClientCapabilities>,
     // pub rename: Option<RenameClientCapabilities>,
-    // pub publish_diagnostics: Option<PublishDiagnosticsClientCapabilities>, // push diagnostics
     // pub folding_range: Option<FoldingRangeClientCapabilities>,
     // pub selection_range: Option<SelectionRangeClientCapabilities>,
     // pub linked_editing_range: Option<LinkedEditingRangeClientCapabilities>,
@@ -145,6 +145,16 @@ pub struct TextDocumentClientCapabilities {
     // pub inline_value: Option<InlineValueClientCapabilities>,
     // pub inlay_hint: Option<InlayHintClientCapabilities>,
     // pub diagnostic: Option<DiagnosticClientCapabilities>, // This is pull diagnostics
+}
+
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct PublishDiagnosticsClientCapabilities {
+    pub related_information: Option<bool>,
+    pub tag_support: Option<TagSupport>,
+    pub version_support: Option<bool>,
+    pub code_description_support: Option<bool>,
+    pub data_support: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -583,7 +593,7 @@ pub struct TextDocumentEdit {
     pub edits: Vec<TextEdit>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone, PartialEq)]
 pub struct Location {
     pub uri: String,
     pub range: Range,
@@ -599,7 +609,7 @@ pub struct LocationLink {
     pub target_selection_range: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnostic {
     pub range: Range,
@@ -620,14 +630,14 @@ pub struct Diagnostic {
     pub data: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum DiagnosticCode {
     Integer(i64),
     String(String)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(from = "i32", into = "i32")]
 pub enum DiagnosticSeverity {
     Error = 1,
@@ -654,7 +664,7 @@ impl From<i32> for DiagnosticSeverity {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(from = "i32", into = "i32")]
 pub enum DiagnosticTag {
     Unnecessary = 1,
@@ -677,13 +687,13 @@ impl From<i32> for DiagnosticTag {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone, PartialEq)]
 pub struct DiagnosticRelatedInformation {
     pub location: Location,
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone, PartialEq)]
 pub struct CodeDescription {
     pub href: String,
 }

@@ -1,8 +1,10 @@
+use std::vec;
+
 use crate::types::{
     ClientCapabilities, ClientInfo, CompletionClientCapabilities, CompletionItemCapability,
     CompletionItemTagKind, HoverClientCapabilities, InitializeParams, InsertTextMode,
-    InsertTextModeSupport, MarkupKind, TagSupport, TextDocumentClientCapabilities,
-    TextDocumentSyncClientCapabilities,
+    InsertTextModeSupport, MarkupKind, PublishDiagnosticsClientCapabilities, TagSupport,
+    TextDocumentClientCapabilities, TextDocumentSyncClientCapabilities,
 };
 
 /// Defines the capabilities supported by Oxid's LSP Client
@@ -67,6 +69,18 @@ pub fn get_client_capabilities() -> InitializeParams {
                                 // .context_support()
                                 // .completion_item_kind()
                                 // .completion_list()
+                                .build(),
+                        )
+                        .publish_diagnostics(
+                            PublishDiagnosticsClientCapabilities::builder()
+                                .data_support(false)
+                                .tag_support(
+                                    TagSupport::builder()
+                                        .value_set(vec![CompletionItemTagKind::Deprecated])
+                                        .build(),
+                                )
+                                .code_description_support(true)
+                                .version_support(false)
                                 .build(),
                         )
                         .build(),
