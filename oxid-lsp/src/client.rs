@@ -376,6 +376,18 @@ impl LspClient {
         Ok(())
     }
 
+    fn did_close(&mut self, file_path: &str) -> anyhow::Result<()> {
+        let params = json!({
+            "textDocument": TextDocumentIdentifier{
+                uri: format!("file://{file_path}")
+            }
+        });
+
+        self.send_notification("textDocument/didClose", params)?;
+
+        Ok(())
+    }
+
     fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
         let params = json!({
             "textDocument": {
@@ -531,7 +543,7 @@ mod tests {
     use crate::types::*;
 
     #[test]
-    fn initialize_lsp() {
+    fn test_initialize_lsp() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
@@ -692,7 +704,7 @@ fn next_id() -> usize {
     }
 
     #[test]
-    fn get_diagnostics() {
+    fn test_get_diagnostics() {
         let mut lsp = start_lsp().unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
@@ -700,10 +712,10 @@ fn next_id() -> usize {
             let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
             let fc = "not valid rust code at all;";
             lsp.did_open(fp, fc).unwrap();
-            std::thread::sleep(Duration::from_secs(3));
+            std::thread::sleep(Duration::from_secs(5));
 
             lsp.did_save(fp, fc).unwrap();
-            std::thread::sleep(Duration::from_secs(3));
+            std::thread::sleep(Duration::from_secs(5));
 
             let diags = lsp.get_file_diagnostic(fp).unwrap().unwrap();
             assert!(!diags.is_empty());
@@ -712,17 +724,32 @@ fn next_id() -> usize {
             lsp.did_change(fp, fc_new).unwrap();
             lsp.did_save(fp, fc_new).unwrap();
 
-            std::thread::sleep(Duration::from_secs(3));
+            std::thread::sleep(Duration::from_secs(5));
             let diags2 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
             assert!(!diags2.is_empty());
 
-            std::thread::sleep(Duration::from_secs(3));
+            std::thread::sleep(Duration::from_secs(5));
             let diags3 = lsp.get_file_diagnostic(fp).unwrap().unwrap();
             assert!(!diags3.is_empty());
 
             assert_eq!(diags2, diags3);
             assert_ne!(diags, diags2);
             assert_ne!(diags, diags3);
+        }
+        lsp.shutdown().unwrap();
+    }
+
+    #[test]
+    fn test_did_close() {
+        let mut lsp = start_lsp().unwrap();
+        lsp.initialize().unwrap();
+        assert!(lsp.initialized);
+        if lsp.initialized {
+            let fp = "/home/beri/dev/oxid/oxid-lsp/src/lib.rs";
+            let fc = "not valid rust code at all;";
+            lsp.did_open(fp, fc).unwrap();
+            let out = lsp.did_close(fp);
+            assert!(out.is_ok());
         }
         lsp.shutdown().unwrap();
     }
