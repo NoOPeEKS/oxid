@@ -84,47 +84,26 @@ impl Buffer {
         }
 
         if curr_char > 0 {
-            // Regular backspace: delete the character just before the cursor
+            // Regular backspace, just delete the character before the cursor
             self.file_text
                 .remove(line_start_char + curr_char - 1..line_start_char + curr_char);
             self.current_position.character = self.current_position.character.saturating_sub(1);
         } else {
-            // We're at the start of a line -> merge with previous line
+            // We're at the start of a line, merge with previous line
             let prev_line = curr_line - 1;
             let prev_line_len = self.file_text.line(prev_line).len_chars() -1;
 
-            // Remove the line break between prev_line and curr_line
+            // Remove the line break
             let prev_line_end = self.file_text.line_to_char(prev_line) + prev_line_len;
             let curr_line_start = line_start_char;
             self.file_text.remove(prev_line_end..curr_line_start);
 
-            // Update cursor: move to end of previous line
+            // Update cursor and move to end of previous line
             self.current_position.line = prev_line;
             self.current_position.character = prev_line_len + self.numbar_space;
         }
 
         self.ensure_cursor_visible();
-        // let curr_line = self.current_position.line;
-        // let curr_char = self.current_position.character - self.numbar_space;
-        // let line_to_char = self.file_text.line_to_char(curr_line);
-        //
-        // if curr_line == 0 && curr_char == 0 {
-        //     return;
-        // }
-        //
-        // // TODO: Deleting in same line works, but need to move cursor to other lines if deleting
-        // // goes to above line.
-        // self.file_text.remove(
-        //     line_to_char.saturating_add(curr_char).saturating_sub(1)
-        //         ..line_to_char.saturating_add(curr_char),
-        // );
-        // self.current_position.character = self.current_position.character.saturating_sub(1);
-        // if self.current_position.character - self.numbar_space == 0 {
-        //     self.current_position.line = curr_line.saturating_sub(1);
-        //     self.current_position.character =
-        //         self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
-        // }
-        // self.ensure_cursor_visible();
     }
 
     pub fn enter_key(&mut self) {
@@ -137,50 +116,9 @@ impl Buffer {
         self.current_position.line = self.current_position.line.saturating_add(1);
         self.current_position.character = self.numbar_space;
         self.ensure_cursor_visible();
-        // let curr_line = self.file_lines[self.current_position.line].clone();
-        // let current_character = self.current_position.character;
-        // // If cursor is at the end of the line, just include empty line below.
-        // if current_character - self.numbar_space == curr_line.length {
-        //     self.file_lines.insert(
-        //         self.current_position.line + 1,
-        //         FileLine {
-        //             content: String::from(""),
-        //             length: 0,
-        //         },
-        //     );
-        //     self.update_numbar_space();
-        //     self.current_position.line = self.current_position.line.saturating_add(1);
-        //     self.current_position.character = self.numbar_space;
-        // } else if current_character >= self.numbar_space && current_character < curr_line.length {
-        //     // If cursor is anywhere between the line, move cursor + forward to next line.
-        //     // So basically, current line should be line[0..cursor] and next line should be
-        //     // line[cursor..]
-        //     self.file_lines[self.current_position.line].content =
-        //         curr_line.content[0..current_character - self.numbar_space].to_string();
-        //
-        //     let new_line_content =
-        //         curr_line.content[current_character - self.numbar_space..].to_string();
-        //
-        //     self.file_lines.insert(
-        //         self.current_position.line + 1,
-        //         FileLine {
-        //             content: new_line_content.clone(),
-        //             length: new_line_content.len(),
-        //         },
-        //     );
-        //     self.update_numbar_space();
-        //     self.current_position.line = self.current_position.line.saturating_add(1);
-        //     self.current_position.character = self.numbar_space;
-        // }
-        // self.ensure_cursor_visible();
     }
 
     pub fn save_file(&self) -> anyhow::Result<()> {
-        // let lines_vec: Vec<_> = self
-        //     .file_lines
-        //     .iter()
-        //     .map(|fl| fl.content.clone())
-        //     .collect();
         let text = self.file_text.to_string();
         if let Some(filepath) = &self.file_path {
             std::fs::write(filepath, text)?;

@@ -28,7 +28,7 @@ impl App {
             quitting: false,
             buffers,
             registers: HashMap::from([(String::from("default"), String::new())]),
-            debug_mode: true,
+            debug_mode: false,
         }
     }
 

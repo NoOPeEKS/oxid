@@ -29,7 +29,6 @@ impl Buffer {
     }
     pub fn move_cursor_end_line(&mut self) {
         self.current_position.character =
-            // self.file_text[self.current_position.line].length + self.numbar_space;
             (self.file_text.line(self.current_position.line).len_chars() - 1) + self.numbar_space;
     }
 
@@ -102,19 +101,16 @@ impl Buffer {
         self.current_position.line = self.current_position.line.saturating_sub(1);
         // Edge case where when going up the line is empty line. Then put cursor
         // after numbar.
-        // if self.file_lines[self.current_position.line].length == 0 {
         if self.file_text.line(self.current_position.line).len_chars() == 0 {
             self.current_position.character = self.numbar_space;
         }
         // If current char after going up would be bigger than the new line's
         // length, put it on max character of the line.
         else if self.current_position.character
-            // > self.file_lines[self.current_position.line].length + self.numbar_space
             > self.file_text.line(self.current_position.line).len_chars() + self.numbar_space
         {
             // -1 because lines start at 0 and length is always bigger.
             self.current_position.character =
-                // self.file_lines[self.current_position.line].length + self.numbar_space - 1;
                 self.file_text.line(self.current_position.line).len_chars() + self.numbar_space - 1;
         }
         self.ensure_cursor_visible();
@@ -178,7 +174,6 @@ impl Buffer {
         }
 
         // Try next lines
-        // for next_line_idx in (line_idx + 1)..self.file_lines.len() {
         for next_line_idx in (line_idx + 1)..self.file_text.len_lines() {
             if let Some(chars) = self.get_line_chars(next_line_idx) {
                 if chars.is_empty() {
@@ -314,7 +309,6 @@ impl Buffer {
         }
 
         // Try next lines
-        // for next_line_idx in (line_idx + 1)..self.file_lines.len() {
         for next_line_idx in (line_idx + 1)..self.file_text.len_lines() {
             if let Some(chars) = self.get_line_chars(next_line_idx) {
                 if chars.is_empty() {
@@ -335,9 +329,6 @@ impl Buffer {
     }
 
     fn get_line_chars(&self, line_idx: usize) -> Option<Vec<char>> {
-        // self.file_lines
-        //     .get(line_idx)
-        //     .map(|line| line.content.chars().collect())
         Some(self.file_text.line(line_idx).chars().collect())
     }
 
