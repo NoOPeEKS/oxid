@@ -1,5 +1,5 @@
 use super::core::Buffer;
-use super::types::{BufferPosition, CharType, FileLine};
+use super::types::{BufferPosition, CharType};
 
 impl Buffer {
     pub fn move_to_end_of_word(&mut self) {
@@ -30,7 +30,7 @@ impl Buffer {
     pub fn move_cursor_end_line(&mut self) {
         self.current_position.character =
             // self.file_text[self.current_position.line].length + self.numbar_space;
-            self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
+            (self.file_text.line(self.current_position.line).len_chars() - 1) + self.numbar_space;
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
@@ -133,8 +133,7 @@ impl Buffer {
     }
 
     pub fn move_cursor_right(&mut self) {
-        // let line_len = self.file_lines[self.current_position.line].length;
-        let line_len = self.file_text.line(self.current_position.line).len_chars();
+        let line_len = self.file_text.line(self.current_position.line).len_chars() - 1;
         let max_cursor_pos = line_len + self.numbar_space;
         if self.current_position.character < max_cursor_pos {
             self.current_position.character = self.current_position.character.saturating_add(1);
