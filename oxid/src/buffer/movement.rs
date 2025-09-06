@@ -126,8 +126,10 @@ impl Buffer {
     }
 
     pub fn move_cursor_right(&mut self) {
-        let line_len = self.file_text.line(self.current_position.line).len_chars() - 1;
-        let max_cursor_pos = line_len + self.numbar_space;
+        let line_len = self.file_text.line(self.current_position.line).len_chars();
+        // For some reason the -1 must be on this line and not after len_chars() otherwise it
+        // crashes if cursor is on last line, it's empty and tries to go to the right.
+        let max_cursor_pos = line_len + self.numbar_space - 1;
         if self.current_position.character < max_cursor_pos {
             self.current_position.character = self.current_position.character.saturating_add(1);
         }
