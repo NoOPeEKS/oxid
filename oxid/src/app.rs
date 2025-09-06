@@ -294,6 +294,11 @@ impl App {
                         if self.mode == Mode::Insert {
                             self.buffers[0].remove_char();
                         }
+                        if self.mode == Mode::Command {
+                            if let Some(command) = &mut self.command {
+                                command.pop();
+                            }
+                        }
                     }
                     EventKind::EnterKey => {
                         if self.mode == Mode::Insert {
