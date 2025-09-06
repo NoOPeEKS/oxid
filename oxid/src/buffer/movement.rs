@@ -47,24 +47,19 @@ impl Buffer {
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        // let max_scroll = (self.file_lines.len()).saturating_sub(self.viewport_height);
         let max_scroll = (self.file_text.len_lines()).saturating_sub(self.viewport_height);
         self.vertical_scroll = std::cmp::min(self.vertical_scroll + lines, max_scroll);
         self.current_position.line = {
-            // if self.current_position.line.saturating_add(lines) > self.file_lines.len() {
-            if self.current_position.line.saturating_add(lines) > self.file_text.len_lines() {
-                // self.file_lines.len() - 1 // Respect the status line
+            if self.current_position.line.saturating_add(lines) > self.file_text.len_lines() - 1 {
                 self.file_text.len_lines() - 1 // Respect the status line
             } else {
                 self.current_position.line.saturating_add(lines)
             }
         };
-        // if self.file_lines[self.current_position.line].length
         if self.file_text.line(self.current_position.line).len_chars()
             < self.current_position.character - self.numbar_space
         {
             self.current_position.character =
-                // self.file_lines[self.current_position.line].length + self.numbar_space;
                 self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
         }
     }
