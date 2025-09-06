@@ -2,14 +2,11 @@ use super::debug::DebugPopup;
 use crate::app::App;
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Position},
+    layout::{Alignment, Constraint, Direction, Layout, Position},
     prelude::Stylize,
-    style::{
-        Color, Style, Styled,
-        palette::tailwind::{FUCHSIA, PURPLE},
-    },
-    text::{Line, Span, Text},
-    widgets::{Block, Paragraph},
+    style::{Color, Style, palette::tailwind::PURPLE},
+    text::{Line, Span},
+    widgets::{Block, Paragraph, Wrap},
 };
 
 pub fn ui(frame: &mut Frame, app: &App) {
@@ -133,16 +130,40 @@ pub fn ui(frame: &mut Frame, app: &App) {
         frame.render_widget(popup, editor_subareas[1]);
     }
 
-    // Status bar showing mode, absolute cursor position, and scroll info
+    let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
+
+    // Status bar showing mode, file, cursor position
     let mode = format!(
-        "{:?} Mode :: {}:{}",
+        "{} Mode :: {}",
         app.mode,
+        app.buffers[0]
+            .file_path
+            .clone()
+            .unwrap_or("New File".to_string())
+    );
+    let cursor_pos = format!(
+        "{}:{}",
         app.buffers[0].current_position.line,
         app.buffers[0]
             .current_position
             .character
             .saturating_sub(app.buffers[0].numbar_space),
     );
-    let text = Text::raw(mode);
-    frame.render_widget(text, editor_area_chunks[1]);
+    let area_width = editor_area_chunks[1].width as usize;
+    let mode_width = mode.chars().count();
+    let position_width = cursor_pos.chars().count();
+    let spacer_width = area_width.saturating_sub(mode_width + position_width) - 2;
+
+    let text = Line::from(vec![
+        Span::raw(mode),
+        Span::raw(" ".repeat(spacer_width)),
+        Span::raw(cursor_pos),
+    ]);
+    let sb_paragraph = Paragraph::new(text)
+        .style(Style::default())
+        .block(status_bar_area_bg)
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: false });
+
+    frame.render_widget(sb_paragraph, editor_area_chunks[1]);
 }
