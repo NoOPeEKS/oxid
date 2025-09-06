@@ -143,15 +143,13 @@ impl Buffer {
     }
 
     pub fn insert_line_below(&mut self) {
-        // self.file_lines.insert(
-        //     self.current_position.line + 1,
-        //     FileLine {
-        //         content: String::from(""),
-        //         length: 0,
-        //     },
-        // );
-        self.file_text.insert(self.current_position.line + 1, "");
+        let curr_line = self.current_position.line;
+        let curr_idx = self.file_text.line_to_char(curr_line + 1);
+
+        self.file_text.insert(curr_idx, "\n");
+
         self.update_numbar_space();
+
         self.current_position.line = self.current_position.line.saturating_add(1);
         self.current_position.character = self.numbar_space;
         self.ensure_cursor_visible();
