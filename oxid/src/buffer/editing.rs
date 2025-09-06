@@ -28,16 +28,8 @@ impl Buffer {
 
             let line_len = self.file_text.line(curr_line).len_chars();
             let start_line_char = self.file_text.line_to_char(curr_line);
+            let end_line_char = start_line_char + line_len;
             
-            // For the last line, we need to be careful about the range
-            let end_line_char = if curr_line == self.file_text.len_lines() - 1 {
-                // This is last line, don't include newline character if it doesn't exist
-                start_line_char + line_len
-            } else {
-                // This is not last line, include up to but not including the newline
-                start_line_char + line_len.saturating_sub(1)
-            };
-
             if start_line_char <= end_line_char && end_line_char <= self.file_text.len_chars() {
                 self.file_text.remove(start_line_char..end_line_char);
                 self.file_text.insert(start_line_char, &new_str);
