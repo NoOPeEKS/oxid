@@ -12,6 +12,7 @@ pub enum Mode {
     Normal,
     Insert,
     Visual,
+    Command,
 }
 
 impl Display for Mode {
@@ -19,7 +20,8 @@ impl Display for Mode {
         match self {
             Self::Normal => write!(f, "Normal"),
             Self::Insert => write!(f, "Insert"),
-            Self::Visual => write!(f, "Visual")
+            Self::Visual => write!(f, "Visual"),
+            Self::Command => write!(f, "Command"),
         }
     }
 }
@@ -29,6 +31,7 @@ pub struct App {
     pub quitting: bool,
     pub buffers: Vec<Buffer>,
     pub registers: HashMap<String, String>,
+    pub command: Option<String>,
     pub debug_mode: bool,
 }
 
@@ -39,6 +42,7 @@ impl App {
             quitting: false,
             buffers,
             registers: HashMap::from([(String::from("default"), String::new())]),
+            command: None,
             debug_mode: false,
         }
     }
@@ -67,6 +71,25 @@ impl App {
             self.buffers[0].update_selected_string();
         }
     }
+    pub fn command_mode(&mut self) {
+        if self.mode == Mode::Normal {
+            self.mode = Mode::Command;
+            self.command = None;
+        } else {
+            // If we don't come from normal mode, just reset everything
+            // at least for now.
+            self.mode = Mode::Command;
+            self.buffers[0].selection = None;
+            self.buffers[0].update_selected_string();
+            self.command = None;
+        }
+    }
+
+    pub fn apply_command(&mut self) {
+        // TODO: Handle the command.
+        self.mode = Mode::Normal;
+        self.command = None;
+    }
 
     pub fn run(
         &mut self,
@@ -90,9 +113,17 @@ impl App {
                     EventKind::ScrollUp => self.buffers[0].scroll_up(5),
                     EventKind::ScrollDown => self.buffers[0].scroll_down(5),
                     EventKind::KeyPressed(ch) => {
+                        if self.mode == Mode::Command {
+                            if let Some(cmd_str) = &mut self.command {
+                                cmd_str.push(ch);
+                            } else {
+                                self.command = Some(String::from(ch));
+                            }
+                        }
                         if self.mode == Mode::Normal || self.mode == Mode::Visual {
                             let vis = self.mode == Mode::Visual;
                             match ch {
+                                ':' => self.command_mode(),
                                 'v' => self.visual_mode(),
                                 'h' => {
                                     self.buffers[0].move_cursor_left();
@@ -267,6 +298,8 @@ impl App {
                     EventKind::EnterKey => {
                         if self.mode == Mode::Insert {
                             self.buffers[0].enter_key();
+                        } else if self.mode == Mode::Command {
+                            self.apply_command();
                         }
                     }
                 }
