@@ -77,13 +77,10 @@ impl Buffer {
     }
 
     pub fn move_cursor_down(&mut self) {
-        // If current line is bigger than length of lines vector - 1, limit
-        // it to last line available. Must be len(vec) - 1 because lines start at
-        // 0.
+        // If current line is bigger or eq than num of total lines, limit
+        // it to last line available. Must be len_lines() - 1 because lines start at 0.
         self.current_position.line = {
-            // if self.current_position.line >= (self.file_lines.len() - 1) {
-            if self.current_position.line > (self.file_text.len_lines() - 1) {
-                // self.file_lines.len() - 1
+            if self.current_position.line >= (self.file_text.len_lines() - 1) {
                 self.file_text.len_lines() - 1
             } else {
                 self.current_position.line.saturating_add(1)
@@ -92,19 +89,15 @@ impl Buffer {
 
         // Edge case where when going down, the line is empty line. Then put cursor
         // right after numbar.
-        // if self.file_lines[self.current_position.line].length == 0 {
         if self.file_text.line(self.current_position.line).len_chars() == 0 {
             self.current_position.character = self.numbar_space;
         }
         // If current char after going down would be bigger than the new line's
         // length, put it on max character of the line.
         else if self.current_position.character
-            // > self.file_lines[self.current_position.line].length + self.numbar_space
             > self.file_text.line(self.current_position.line).len_chars() + self.numbar_space
         {
-            // -1 because lines start at 0 and length is always bigger.
             self.current_position.character =
-                // self.file_lines[self.current_position.line].length + self.numbar_space - 1;
                 self.file_text.line(self.current_position.line).len_chars() + self.numbar_space - 1;
         }
         self.ensure_cursor_visible();
