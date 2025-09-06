@@ -23,12 +23,6 @@ pub struct BufferPosition {
     pub character: usize,
 }
 
-#[derive(Clone, Debug)]
-pub struct FileLine {
-    pub content: String,
-    pub length: usize,
-}
-
 #[derive(Debug, Clone)]
 pub struct Selection {
     pub start: BufferPosition,

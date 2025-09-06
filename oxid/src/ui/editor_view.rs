@@ -40,20 +40,13 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .constraints([Constraint::Min(1), Constraint::Length(1)])
         .split(editor_area);
 
-    // // Render only the visible lines
-    // let file_string: Vec<String> = visible_lines
-    //     .iter()
-    //     .map(|line| app.buffers[0].get_visible_line_content(line))
-    //     .collect();
-    // let file_text = Paragraph::new(file_string.join("\n"));
-
     let selection = &app.buffers[0].selection;
     let mut styled_lines: Vec<Line> = Vec::new();
     let start_line = app.buffers[0].vertical_scroll;
     let numbar_space = app.buffers[0].numbar_space;
 
     for (i, visible_line) in visible_lines.iter().enumerate() {
-        let line_content = app.buffers[0].get_visible_line_content(visible_line);
+        let line_content = app.buffers[0].get_visible_line_content(visible_line.to_owned());
         let mut spans: Vec<Span> = Vec::new();
 
         for (char_idx, ch) in line_content.chars().enumerate() {

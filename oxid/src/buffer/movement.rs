@@ -1,5 +1,5 @@
 use super::core::Buffer;
-use super::types::{BufferPosition, CharType, FileLine};
+use super::types::{BufferPosition, CharType};
 
 impl Buffer {
     pub fn move_to_end_of_word(&mut self) {
@@ -29,35 +29,37 @@ impl Buffer {
     }
     pub fn move_cursor_end_line(&mut self) {
         self.current_position.character =
-            self.file_lines[self.current_position.line].length + self.numbar_space;
+            (self.file_text.line(self.current_position.line).len_chars() - 1) + self.numbar_space;
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
         self.vertical_scroll = self.vertical_scroll.saturating_sub(lines);
         self.current_position.line = self.current_position.line.saturating_sub(lines);
-        if self.file_lines[self.current_position.line].length
+        // if self.file_lines[self.current_position.line].length
+        if self.file_text.line(self.current_position.line).len_chars()
             < self.current_position.character - self.numbar_space
         {
             self.current_position.character =
-                self.file_lines[self.current_position.line].length + self.numbar_space;
+                // self.file_lines[self.current_position.line].length + self.numbar_space;
+                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
         }
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        let max_scroll = (self.file_lines.len()).saturating_sub(self.viewport_height);
+        let max_scroll = (self.file_text.len_lines()).saturating_sub(self.viewport_height);
         self.vertical_scroll = std::cmp::min(self.vertical_scroll + lines, max_scroll);
         self.current_position.line = {
-            if self.current_position.line.saturating_add(lines) > self.file_lines.len() {
-                self.file_lines.len() - 1 // Respect the status line
+            if self.current_position.line.saturating_add(lines) > self.file_text.len_lines() - 1 {
+                self.file_text.len_lines() - 1 // Respect the status line
             } else {
                 self.current_position.line.saturating_add(lines)
             }
         };
-        if self.file_lines[self.current_position.line].length
+        if self.file_text.line(self.current_position.line).len_chars()
             < self.current_position.character - self.numbar_space
         {
             self.current_position.character =
-                self.file_lines[self.current_position.line].length + self.numbar_space;
+                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
         }
     }
 
@@ -69,12 +71,11 @@ impl Buffer {
     }
 
     pub fn move_cursor_down(&mut self) {
-        // If current line is bigger than length of lines vector - 1, limit
-        // it to last line available. Must be len(vec) - 1 because lines start at
-        // 0.
+        // If current line is bigger or eq than num of total lines, limit
+        // it to last line available. Must be len_lines() - 1 because lines start at 0.
         self.current_position.line = {
-            if self.current_position.line >= (self.file_lines.len() - 1) {
-                self.file_lines.len() - 1
+            if self.current_position.line >= (self.file_text.len_lines() - 1) {
+                self.file_text.len_lines() - 1
             } else {
                 self.current_position.line.saturating_add(1)
             }
@@ -82,17 +83,16 @@ impl Buffer {
 
         // Edge case where when going down, the line is empty line. Then put cursor
         // right after numbar.
-        if self.file_lines[self.current_position.line].length == 0 {
+        if self.file_text.line(self.current_position.line).len_chars() == 0 {
             self.current_position.character = self.numbar_space;
         }
         // If current char after going down would be bigger than the new line's
         // length, put it on max character of the line.
         else if self.current_position.character
-            > self.file_lines[self.current_position.line].length + self.numbar_space
+            > self.file_text.line(self.current_position.line).len_chars() + self.numbar_space
         {
-            // -1 because lines start at 0 and length is always bigger.
             self.current_position.character =
-                self.file_lines[self.current_position.line].length + self.numbar_space - 1;
+                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space - 1;
         }
         self.ensure_cursor_visible();
     }
@@ -101,24 +101,26 @@ impl Buffer {
         self.current_position.line = self.current_position.line.saturating_sub(1);
         // Edge case where when going up the line is empty line. Then put cursor
         // after numbar.
-        if self.file_lines[self.current_position.line].length == 0 {
+        if self.file_text.line(self.current_position.line).len_chars() == 0 {
             self.current_position.character = self.numbar_space;
         }
         // If current char after going up would be bigger than the new line's
         // length, put it on max character of the line.
         else if self.current_position.character
-            > self.file_lines[self.current_position.line].length + self.numbar_space
+            > self.file_text.line(self.current_position.line).len_chars() + self.numbar_space
         {
             // -1 because lines start at 0 and length is always bigger.
             self.current_position.character =
-                self.file_lines[self.current_position.line].length + self.numbar_space - 1;
+                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space - 1;
         }
         self.ensure_cursor_visible();
     }
 
     pub fn move_cursor_right(&mut self) {
-        let line_len = self.file_lines[self.current_position.line].length;
-        let max_cursor_pos = line_len + self.numbar_space;
+        let line_len = self.file_text.line(self.current_position.line).len_chars();
+        // For some reason the -1 must be on this line and not after len_chars() otherwise it
+        // crashes if cursor is on last line, it's empty and tries to go to the right.
+        let max_cursor_pos = line_len + self.numbar_space - 1;
         if self.current_position.character < max_cursor_pos {
             self.current_position.character = self.current_position.character.saturating_add(1);
         }
@@ -126,14 +128,13 @@ impl Buffer {
     }
 
     pub fn insert_line_below(&mut self) {
-        self.file_lines.insert(
-            self.current_position.line + 1,
-            FileLine {
-                content: String::from(""),
-                length: 0,
-            },
-        );
+        let curr_line = self.current_position.line;
+        let curr_idx = self.file_text.line_to_char(curr_line + 1);
+
+        self.file_text.insert(curr_idx, "\n");
+
         self.update_numbar_space();
+
         self.current_position.line = self.current_position.line.saturating_add(1);
         self.current_position.character = self.numbar_space;
         self.ensure_cursor_visible();
@@ -173,7 +174,7 @@ impl Buffer {
         }
 
         // Try next lines
-        for next_line_idx in (line_idx + 1)..self.file_lines.len() {
+        for next_line_idx in (line_idx + 1)..self.file_text.len_lines() {
             if let Some(chars) = self.get_line_chars(next_line_idx) {
                 if chars.is_empty() {
                     return Some(BufferPosition {
@@ -308,7 +309,7 @@ impl Buffer {
         }
 
         // Try next lines
-        for next_line_idx in (line_idx + 1)..self.file_lines.len() {
+        for next_line_idx in (line_idx + 1)..self.file_text.len_lines() {
             if let Some(chars) = self.get_line_chars(next_line_idx) {
                 if chars.is_empty() {
                     continue;
@@ -328,9 +329,7 @@ impl Buffer {
     }
 
     fn get_line_chars(&self, line_idx: usize) -> Option<Vec<char>> {
-        self.file_lines
-            .get(line_idx)
-            .map(|line| line.content.chars().collect())
+        Some(self.file_text.line(line_idx).chars().collect())
     }
 
     fn skip_whitespace_forward(&self, chars: &[char], mut pos: usize) -> usize {

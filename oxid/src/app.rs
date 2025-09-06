@@ -28,7 +28,7 @@ impl App {
             quitting: false,
             buffers,
             registers: HashMap::from([(String::from("default"), String::new())]),
-            debug_mode: true,
+            debug_mode: false,
         }
     }
 
@@ -218,7 +218,7 @@ impl App {
                                     if !vis {
                                         if let Some(paste_string) = self.registers.get("default") {
                                             if !paste_string.is_empty() {
-                                                self.buffers[0].paste(paste_string.to_string());
+                                                self.buffers[0].paste(paste_string.to_owned());
                                             }
                                         }
                                     }
