@@ -4,12 +4,18 @@ use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Position},
     prelude::Stylize,
-    style::Style,
+    style::{
+        Color, Style, Styled,
+        palette::tailwind::{FUCHSIA, PURPLE},
+    },
     text::{Line, Span, Text},
-    widgets::Paragraph,
+    widgets::{Block, Paragraph},
 };
 
 pub fn ui(frame: &mut Frame, app: &App) {
+    let background = Block::default().style(Style::default().bg(Color::Rgb(59, 34, 76)));
+    frame.render_widget(background, frame.area());
+
     let terminal_area = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -31,7 +37,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         }
         vec_nums
     };
-    let numbar_text = Paragraph::new(nums_of_lines.join("\n"));
+    let numbar_text = Paragraph::new(nums_of_lines.join("\n")).style(Color::Rgb(164, 160, 232));
     frame.render_widget(numbar_text, numbar_area);
 
     let editor_area = terminal_area[1];
@@ -77,7 +83,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
             };
 
             let styled_char = if in_selection {
-                Span::styled(ch.to_string(), Style::default().on_dark_gray())
+                Span::styled(ch.to_string(), Style::default().bg(PURPLE.c900))
             } else {
                 Span::raw(ch.to_string())
             };
@@ -87,7 +93,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         styled_lines.push(Line::from(spans));
     }
 
-    let file_text = Paragraph::new(styled_lines);
+    let file_text = Paragraph::new(styled_lines).style(Color::Rgb(164, 160, 232));
 
     // Get cursor position relative to the viewport
     let viewport_cursor = app.buffers[0].get_viewport_cursor_pos();
