@@ -1,7 +1,5 @@
-use ropey::RopeSlice;
-
 use super::core::Buffer;
-use super::types::{BufferPosition, FileLine};
+use super::types::BufferPosition;
 
 impl Buffer {
     pub(super) fn ensure_cursor_visible(&mut self) {
@@ -54,7 +52,7 @@ impl Buffer {
         let line_len = line.len_chars();
 
         if start_col >= line_len {
-            return String::new()
+            return String::new();
         }
 
         let end_col = std::cmp::min(start_col + self.viewport_width, line_len);

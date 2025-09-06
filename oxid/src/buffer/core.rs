@@ -1,12 +1,11 @@
 use ropey::Rope;
 
-use super::types::{BufferPosition, FileLine, Selection};
+use super::types::{BufferPosition, Selection};
 
 pub const STATUSBAR_SPACE: usize = 1;
 
 pub struct Buffer {
     pub file_path: Option<String>,
-    // pub file_lines: Vec<FileLine>,
     pub file_text: Rope,
     pub viewport_width: usize,
     pub viewport_height: usize,
@@ -28,13 +27,6 @@ impl Buffer {
         let numbar_space = file_text.lines().count().to_string().len() + 1;
         Buffer {
             file_path,
-            // file_lines: file_text
-            //     .lines()
-            //     .map(|l| FileLine {
-            //         content: l.to_string(),
-            //         length: l.len(),
-            //     })
-            //     .collect(),
             file_text,
             viewport_width: viewport_width - numbar_space,
             viewport_height: viewport_height - STATUSBAR_SPACE,
