@@ -35,11 +35,6 @@ impl Buffer {
                     .to_string();
                 final_string.push_str(&start_str);
 
-                // Add newline only if we're going to add more content
-                if selection.end.line > selection.start.line {
-                    final_string.push('\n');
-                }
-
                 // Middle lines: complete lines
                 for line_num in (selection.start.line + 1)..selection.end.line {
                     let line = self.file_text.line(line_num).as_str().unwrap();
@@ -70,11 +65,6 @@ impl Buffer {
                     .slice(selection.end.character - self.numbar_space..)
                     .to_string();
                 final_string.push_str(&start_str);
-
-                // Add newline only if we're going to add more content
-                if selection.start.line > selection.end.line {
-                    final_string.push('\n');
-                }
 
                 // Middle lines: complete lines
                 for line_num in (selection.end.line + 1)..selection.start.line {
