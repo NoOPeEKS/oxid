@@ -4,53 +4,72 @@ impl Buffer {
     pub fn paste(&mut self, paste_string: String) {
         let curr_line = self.current_position.line;
         let curr_char = self.current_position.character - self.numbar_space;
+        
         let curr_string = self.file_text.line(curr_line).to_string();
-        let start_until_cursor = &curr_string[0..curr_char];
-        let rest_original_string = &curr_string[curr_char..];
+        
+        // Ensure curr_char doesn't exceed the line length
+        let safe_curr_char = curr_char.min(curr_string.len());
+        
+        let start_until_cursor = &curr_string[0..safe_curr_char];
+        let rest_original_string = &curr_string[safe_curr_char..];
+        
         let newlines: Vec<_> = paste_string.lines().collect();
 
-        // We only handle two cases, if len == 1 or len > 1. We should never receive an empty
-        // pastestring here.
+        // Handle empty paste string
+        if newlines.is_empty() {
+            return;
+        }
+
         if newlines.len() == 1 {
-            // If we have len == 1 this means there were no newlines and we can just append on
-            // cursor position and don't have to handle newlines after.
+            // Single line paste means just insert at cursor position.
             let mut new_str = String::from(start_until_cursor);
-            new_str.push_str(&paste_string.to_string());
+            new_str.push_str(&paste_string);
             new_str.push_str(rest_original_string);
 
             let line_len = self.file_text.line(curr_line).len_chars();
             let start_line_char = self.file_text.line_to_char(curr_line);
-            let end_line_char = start_line_char + line_len;
+            
+            // For the last line, we need to be careful about the range
+            let end_line_char = if curr_line == self.file_text.len_lines() - 1 {
+                // This is last line, don't include newline character if it doesn't exist
+                start_line_char + line_len
+            } else {
+                // This is not last line, include up to but not including the newline
+                start_line_char + line_len.saturating_sub(1)
+            };
 
-            self.file_text.remove(start_line_char..end_line_char);
-            self.file_text.insert(start_line_char, &new_str);
-        } else if newlines.len() > 1 {
-            // If we enter here, means we need to do multiline selection handling.
-            // Update the current line with the first part
-            let mut first_line = String::from(start_until_cursor);
-            first_line.push_str(newlines[0]);
+            if start_line_char <= end_line_char && end_line_char <= self.file_text.len_chars() {
+                self.file_text.remove(start_line_char..end_line_char);
+                self.file_text.insert(start_line_char, &new_str);
+            }
+        } else {
+            // Multi-line paste
+            let mut new_text = String::from(start_until_cursor);
+            new_text.push_str(&paste_string);
+            new_text.push_str(rest_original_string);
 
             let line_len = self.file_text.line(curr_line).len_chars();
             let start_line_char = self.file_text.line_to_char(curr_line);
-            let end_line_char = start_line_char + line_len;
+            
+            // For the last line, handle carefully
+            let end_line_char = if curr_line == self.file_text.len_lines() - 1 {
+                // Last line, then include all characters
+                start_line_char + line_len
+            } else {
+                // Not last line, then exclude the newline character
+                start_line_char + line_len.saturating_sub(1)
+            };
 
-            self.file_text.remove(start_line_char..end_line_char);
-            self.file_text.insert(start_line_char, &first_line);
-
-            // Insert middle lines (if any)
-            for (i, str_text) in newlines[1..newlines.len() - 1].iter().enumerate() {
-                let char_index = self.file_text.line_to_char(curr_line + i + 1);
-                self.file_text.insert(char_index, str_text);
+            // Safety check for the range
+            if start_line_char <= end_line_char && end_line_char <= self.file_text.len_chars() {
+                self.file_text.remove(start_line_char..end_line_char);
+                self.file_text.insert(start_line_char, &new_text);
             }
-
-            // Handle the last line
-            let last_newline = newlines[newlines.len() - 1];
-            let mut last_line = String::from(last_newline);
-            last_line.push_str(rest_original_string);
-            let insert_index = self.file_text.line_to_char(curr_line + newlines.len() - 1);
-            self.file_text.insert(insert_index, &last_line);
         }
+        self.update_numbar_space();
+        self.ensure_cursor_visible();
     }
+
     pub fn update_numbar_space(&mut self) {
         // let numbar_space = self.file_lines.len().to_string().len() + 1;
         let numbar_space = self.file_text.len_lines().to_string().len() + 1;
@@ -64,7 +83,7 @@ impl Buffer {
         // TODO: Need to handle edge case where line is new line.
         // Probably gonna have to optimize this later as there are many clones.
         // In the future, handling '\n' or '<CR>' will be tricky.
-        
+
         let line = self.current_position.line;
         let character = self.current_position.character - self.numbar_space;
         let mut char_idx = self.file_text.line_to_char(line);
