@@ -15,18 +15,26 @@ pub fn ui(frame: &mut Frame, app: &App) {
     frame.render_widget(background, frame.area());
 
     let terminal_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Fill(1),
+            Constraint::Length(STATUSBAR_SPACE as u16),
+        ])
+        .split(frame.area());
+
+    let top_area = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(app.buffers[0].numbar_space as u16),
             Constraint::Fill(1),
         ])
-        .split(frame.area());
+        .split(terminal_area[0]);
 
     // Get visible lines for the current viewport
     let visible_lines = app.buffers[0].get_visible_lines();
 
     // Render line numbers for only the visible lines
-    let numbar_area = terminal_area[0];
+    let numbar_area = top_area[0];
     let nums_of_lines = {
         let mut vec_nums: Vec<String> = Vec::new();
         let start_line = app.buffers[0].vertical_scroll;
@@ -38,7 +46,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let numbar_text = Paragraph::new(nums_of_lines.join("\n")).style(Color::Rgb(164, 160, 232));
     frame.render_widget(numbar_text, numbar_area);
 
-    let editor_area = terminal_area[1];
+    let editor_area = top_area[1];
     let editor_area_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -138,7 +146,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
 
     // Status bar showing mode, file, cursor position
     let mode = format!(
-        "{} Mode :: {}",
+        "  {} Mode :: {}",
         app.mode,
         app.buffers[0]
             .file_path
@@ -156,7 +164,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let area_width = editor_area_chunks[1].width as usize;
     let mode_width = mode.chars().count();
     let position_width = cursor_pos.chars().count();
-    let spacer_width = area_width.saturating_sub(mode_width + position_width) - 2;
+    let spacer_width = area_width.saturating_sub(mode_width + position_width);
 
     let text = Line::from(vec![
         Span::raw(mode),
@@ -169,5 +177,5 @@ pub fn ui(frame: &mut Frame, app: &App) {
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: false });
 
-    frame.render_widget(sb_paragraph, editor_area_chunks[1]);
+    frame.render_widget(sb_paragraph, terminal_area[1]);
 }
