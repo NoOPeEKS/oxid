@@ -52,19 +52,13 @@ impl Buffer {
     }
 
     pub fn update_numbar_space(&mut self) {
-        // let numbar_space = self.file_lines.len().to_string().len() + 1;
         let numbar_space = self.file_text.len_lines().to_string().len() + 1;
         if self.numbar_space != numbar_space {
-            // self.numbar_space = self.file_lines.len().to_string().len() + 1;
             self.numbar_space = self.file_text.len_lines().to_string().len() + 1;
         }
     }
 
     pub fn insert_char(&mut self, ch: char) {
-        // TODO: Need to handle edge case where line is new line.
-        // Probably gonna have to optimize this later as there are many clones.
-        // In the future, handling '\n' or '<CR>' will be tricky.
-
         let line = self.current_position.line;
         let character = self.current_position.character - self.numbar_space;
         let mut char_idx = self.file_text.line_to_char(line);
@@ -73,67 +67,62 @@ impl Buffer {
         self.update_numbar_space();
         self.current_position.character = self.current_position.character.saturating_add(1);
 
-        // let mut curr_line = self.file_lines[self.current_position.line].content.clone();
-        // let insert_index = self.current_position.character - self.numbar_space;
-        // if insert_index <= curr_line.len() {
-        //     curr_line.insert(insert_index, ch);
-        //     self.update_numbar_space();
-        //     self.file_lines[self.current_position.line].content = curr_line.clone();
-        //     self.file_lines[self.current_position.line].length = curr_line.len();
-        //     self.current_position.character = self.current_position.character.saturating_add(1);
-        // }
         self.ensure_cursor_visible();
     }
 
     pub fn remove_char(&mut self) {
         let curr_line = self.current_position.line;
-        let curr_char = self.current_position.character - self.numbar_space;
-        let mut char_range = self.file_text.line_to_char(curr_line);
-        char_range = char_range.saturating_add(curr_char);
-        self.file_text.remove(char_range..char_range);
-        // // Probably gonna have to optimize this later as there are many clones.
-        // let mut curr_line = self.file_lines[self.current_position.line].content.clone();
+        let curr_char = self
+            .current_position
+            .character
+            .saturating_sub(self.numbar_space);
+        let line_start_char = self.file_text.line_to_char(curr_line);
+
+        // Nothing to delete if at start of file
+        if curr_line == 0 && curr_char == 0 {
+            return;
+        }
+
+        if curr_char > 0 {
+            // Regular backspace: delete the character just before the cursor
+            self.file_text
+                .remove(line_start_char + curr_char - 1..line_start_char + curr_char);
+            self.current_position.character = self.current_position.character.saturating_sub(1);
+        } else {
+            // We're at the start of a line -> merge with previous line
+            let prev_line = curr_line - 1;
+            let prev_line_len = self.file_text.line(prev_line).len_chars() -1;
+
+            // Remove the line break between prev_line and curr_line
+            let prev_line_end = self.file_text.line_to_char(prev_line) + prev_line_len;
+            let curr_line_start = line_start_char;
+            self.file_text.remove(prev_line_end..curr_line_start);
+
+            // Update cursor: move to end of previous line
+            self.current_position.line = prev_line;
+            self.current_position.character = prev_line_len + self.numbar_space;
+        }
+
+        self.ensure_cursor_visible();
+        // let curr_line = self.current_position.line;
+        // let curr_char = self.current_position.character - self.numbar_space;
+        // let line_to_char = self.file_text.line_to_char(curr_line);
         //
-        // // If current position is and only if is bigger than the numbar, delete it.
-        // if self.current_position.character > self.numbar_space {
-        //     let string_index = self.current_position.character - 1 - self.numbar_space;
-        //     if string_index < curr_line.len() {
-        //         curr_line.remove(string_index);
-        //         self.update_numbar_space();
-        //         self.file_lines[self.current_position.line].content = curr_line.clone();
-        //         self.file_lines[self.current_position.line].length = curr_line.len();
-        //         self.current_position.character = self.current_position.character.saturating_sub(1);
-        //     }
+        // if curr_line == 0 && curr_char == 0 {
+        //     return;
         // }
         //
-        // // If current pos is just after the numbar, means we're deleting entire line.
-        // if self.current_position.character == self.numbar_space && self.current_position.line > 0 {
-        //     let current_line_index = self.current_position.line;
-        //
-        //     // If it's empty, should just delete the line and move cursor.
-        //     if self.file_lines[current_line_index].content.is_empty() {
-        //         self.file_lines.remove(current_line_index);
-        //         self.update_numbar_space();
-        //         self.current_position.line = self.current_position.line.saturating_sub(1);
-        //         self.current_position.character =
-        //             self.file_lines[current_line_index - 1].length + self.numbar_space;
-        //     }
-        //     // If it's not empty, should join the current linestring with the previous unless it's the
-        //     // first line, and move cursor to last char of previous line.
-        //     else {
-        //         let line = self.file_lines[current_line_index].clone();
-        //         let mut top_line = self.file_lines[current_line_index - 1].clone();
-        //         let top_line_old_len = top_line.length;
-        //
-        //         top_line.content = top_line.content + &line.content;
-        //         top_line.length = top_line.content.len();
-        //         self.file_lines[current_line_index - 1] = top_line;
-        //         self.file_lines.remove(current_line_index);
-        //         self.update_numbar_space();
-        //
-        //         self.current_position.line = self.current_position.line.saturating_sub(1);
-        //         self.current_position.character = top_line_old_len + self.numbar_space;
-        //     }
+        // // TODO: Deleting in same line works, but need to move cursor to other lines if deleting
+        // // goes to above line.
+        // self.file_text.remove(
+        //     line_to_char.saturating_add(curr_char).saturating_sub(1)
+        //         ..line_to_char.saturating_add(curr_char),
+        // );
+        // self.current_position.character = self.current_position.character.saturating_sub(1);
+        // if self.current_position.character - self.numbar_space == 0 {
+        //     self.current_position.line = curr_line.saturating_sub(1);
+        //     self.current_position.character =
+        //         self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
         // }
         // self.ensure_cursor_visible();
     }
