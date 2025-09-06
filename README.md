@@ -94,14 +94,13 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `$` | Move selection to the end of the line |
 | `y` | Yank current selection to default register |
 
-## 📋 Features in Progress
+## 📋 Planned Features
 
 > **Note**: The following features are planned or currently under development. Some are top-priority core functionalities and others are features that will be implemented in future releases.
 
 ### 🔧 **Text Operations**
 - [ ] **Copy/Paste Support**
   - [ ] System clipboard integration
-
 - [ ] **Advanced Editing**
   - [ ] Undo/Redo functionality
 
@@ -114,20 +113,26 @@ As of now, the editor will either open an existing file or create a new one. It 
 - [ ] **Syntax Highlighting**
   - [ ] Color scheme
 
-- [ ] **Visual Improvements**
-  - [ ] UI enhancement with colors, borders... [Core Milestone]
-
-
-### 🔍 **Navigation**
+### **Command Mode**
+- [ ] **File Management**
+    - [ ] Save (:w)
+    - [ ] Quit (:q)
+    - [ ] Open new buffer (:e <file>)
+    - [ ] Go to next buffer (:bn)
+    - [ ] Go to prev buffer (:bp)
+- [ ] **Navigation**
   - [ ] Go to line number (`:line`)
+  - [ ] Search
 
-
-### 🧩 **Developer Tools**
-- [ ] **Integration Features**
-  - [ ] LSP (Language Server Protocol) support
-    - [ ] Auto-completion [LSP Milestone]
-    - [ ] Hovering [LSP Milestone]
-    - [ ] Diagnostics [LSP Milestone]
+### 🧩 **Language Server Protocol**
+- [ ] **LSP Client**
+  - [x] Autocompletion
+  - [x] Hovering
+  - [x] Diagnostics
+- [ ] **Editor UI Integration**
+  - [ ] Auto-completion
+  - [ ] Hovering
+  - [ ] Diagnostics
 
 ## 🤝 Contributing
 
