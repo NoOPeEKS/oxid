@@ -1,5 +1,6 @@
 use super::debug::DebugPopup;
 use crate::app::App;
+use crate::buffer::STATUSBAR_SPACE;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -40,7 +41,10 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let editor_area = terminal_area[1];
     let editor_area_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Length(STATUSBAR_SPACE as u16),
+        ])
         .split(editor_area);
 
     let selection = &app.buffers[0].selection;
