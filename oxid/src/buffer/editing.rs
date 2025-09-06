@@ -1,16 +1,13 @@
 use super::core::Buffer;
-use super::types::FileLine;
 
 impl Buffer {
     pub fn paste(&mut self, paste_string: String) {
         let curr_line = self.current_position.line;
         let curr_char = self.current_position.character - self.numbar_space;
-        // let curr_string = self.file_lines[curr_line].content.clone();
         let curr_string = self.file_text.line(curr_line).to_string();
         let start_until_cursor = &curr_string[0..curr_char];
         let rest_original_string = &curr_string[curr_char..];
-        let binding = paste_string.to_string();
-        let newlines: Vec<_> = binding.lines().collect();
+        let newlines: Vec<_> = paste_string.lines().collect();
 
         // We only handle two cases, if len == 1 or len > 1. We should never receive an empty
         // pastestring here.
@@ -20,11 +17,11 @@ impl Buffer {
             let mut new_str = String::from(start_until_cursor);
             new_str.push_str(&paste_string.to_string());
             new_str.push_str(rest_original_string);
-            // self.file_lines[curr_line].length = new_str.len();
-            // self.file_lines[curr_line].content = new_str;
+
             let line_len = self.file_text.line(curr_line).len_chars();
             let start_line_char = self.file_text.line_to_char(curr_line);
-            let end_line_char = start_line_char + line_len - 1;
+            let end_line_char = start_line_char + line_len;
+
             self.file_text.remove(start_line_char..end_line_char);
             self.file_text.insert(start_line_char, &new_str);
         } else if newlines.len() > 1 {
@@ -32,39 +29,26 @@ impl Buffer {
             // Update the current line with the first part
             let mut first_line = String::from(start_until_cursor);
             first_line.push_str(newlines[0]);
-            // self.file_lines[curr_line].length = first_line.len();
-            // self.file_lines[curr_line].content = first_line;
+
             let line_len = self.file_text.line(curr_line).len_chars();
             let start_line_char = self.file_text.line_to_char(curr_line);
-            let end_line_char = start_line_char + line_len - 1;
+            let end_line_char = start_line_char + line_len;
+
             self.file_text.remove(start_line_char..end_line_char);
             self.file_text.insert(start_line_char, &first_line);
 
             // Insert middle lines (if any)
             for (i, str_text) in newlines[1..newlines.len() - 1].iter().enumerate() {
-                // self.file_lines.insert(
-                //     curr_line + i + 1,
-                //     FileLine {
-                //         content: str_text.to_string(),
-                //         length: str_text.len(),
-                //     },
-                // );
-                self.file_text.insert(curr_line + i + 1, &str_text);
+                let char_index = self.file_text.line_to_char(curr_line + i + 1);
+                self.file_text.insert(char_index, str_text);
             }
 
             // Handle the last line
             let last_newline = newlines[newlines.len() - 1];
             let mut last_line = String::from(last_newline);
             last_line.push_str(rest_original_string);
-            // self.file_lines.insert(
-            //     curr_line + newlines.len() - 1,
-            //     FileLine {
-            //         content: last_line.clone(),
-            //         length: last_line.len(),
-            //     },
-            // );
-            self.file_text
-                .insert(curr_line + newlines.len() - 1, &last_line);
+            let insert_index = self.file_text.line_to_char(curr_line + newlines.len() - 1);
+            self.file_text.insert(insert_index, &last_line);
         }
     }
     pub fn update_numbar_space(&mut self) {
