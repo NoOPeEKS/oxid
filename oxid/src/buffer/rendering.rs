@@ -1,3 +1,5 @@
+use ropey::RopeSlice;
+
 use super::core::Buffer;
 use super::types::{BufferPosition, FileLine};
 
@@ -30,22 +32,35 @@ impl Buffer {
         }
     }
 
-    pub fn get_visible_lines(&self) -> Vec<&FileLine> {
+    pub fn get_visible_lines(&self) -> Vec<ropey::RopeSlice> {
         let start = self.vertical_scroll;
-        let end = std::cmp::min(start + self.viewport_height, self.file_lines.len());
+        // let end = std::cmp::min(start + self.viewport_height, self.file_lines.len());
+        let end = std::cmp::min(start + self.viewport_height, self.file_text.len_lines());
 
-        self.file_lines[start..end].iter().collect()
+        // self.file_lines[start..end].iter().collect()
+        (start..end).map(|i| self.file_text.line(i)).collect()
     }
 
-    pub fn get_visible_line_content(&self, line: &FileLine) -> String {
+    pub fn get_visible_line_content(&self, line: ropey::RopeSlice) -> String {
+        // let start_col = self.horizontal_scroll;
+        // if start_col >= line.content.len() {
+        //     return String::new();
+        // }
+        //
+        // let end_col = std::cmp::min(start_col + self.viewport_width, line.content.len());
+        //
+        // line.content[start_col..end_col].to_string()
         let start_col = self.horizontal_scroll;
-        if start_col >= line.content.len() {
-            return String::new();
+        let line_len = line.len_chars();
+
+        if start_col >= line_len {
+            return String::new()
         }
 
-        let end_col = std::cmp::min(start_col + self.viewport_width, line.content.len());
+        let end_col = std::cmp::min(start_col + self.viewport_width, line_len);
 
-        line.content[start_col..end_col].to_string()
+        // TODO: Check this unwrap
+        line.get_slice(start_col..end_col).unwrap().to_string()
     }
 
     pub fn get_viewport_cursor_pos(&self) -> BufferPosition {
