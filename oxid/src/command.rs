@@ -5,8 +5,8 @@ pub enum Command {
     QuitAll,     // "qa"
     SaveQuitAll, // "wqa"
 
-    QuitFile(String), // "q file_name" // TODO: Not provide filename, just pick current buffer.
-    SaveFile(String), // "w file_name" // TODO: Not provide filename, just pick current buffer.
+    QuitCurrentFile(String), // "q file_name" // TODO: Not provide filename, just pick current buffer.
+    SaveCurrentFile(String), // "w file_name" // TODO: Not provide filename, just pick current buffer.
     OpenFile(String), // "e file_name"
 
     NextBuffer,     // "bn"
@@ -28,7 +28,7 @@ impl FromStr for Command {
             match cmd {
                 "q" => {
                     if let Some(file_name) = cmd_parts.next() {
-                        Ok(Self::QuitFile(String::from(file_name)))
+                        Ok(Self::QuitCurrentFile(String::from(file_name)))
                     } else {
                         anyhow::bail!(
                             "For now ':q <file_name>' must be accompanied by a file name."
@@ -37,7 +37,7 @@ impl FromStr for Command {
                 }
                 "w" => {
                     if let Some(file_name) = cmd_parts.next() {
-                        Ok(Self::SaveFile(String::from(file_name)))
+                        Ok(Self::SaveCurrentFile(String::from(file_name)))
                     } else {
                         anyhow::bail!(
                             "For now ':w <file_name>' must be accompanied by a file name."
@@ -46,7 +46,7 @@ impl FromStr for Command {
                 }
                 "e" => {
                     if let Some(file_name) = cmd_parts.next() {
-                        Ok(Self::SaveFile(String::from(file_name)))
+                        Ok(Self::SaveCurrentFile(String::from(file_name)))
                     } else {
                         anyhow::bail!(
                             "For now ':e <file_name>' must be accompanied by a file name."

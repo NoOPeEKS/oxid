@@ -26,19 +26,19 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let top_area = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(app.buffers[0].numbar_space as u16),
+            Constraint::Length(app.buffers[app.current_buf_index].numbar_space as u16),
             Constraint::Fill(1),
         ])
         .split(terminal_area[0]);
 
     // Get visible lines for the current viewport
-    let visible_lines = app.buffers[0].get_visible_lines();
+    let visible_lines = app.buffers[app.current_buf_index].get_visible_lines();
 
     // Render line numbers for only the visible lines
     let numbar_area = top_area[0];
     let nums_of_lines = {
         let mut vec_nums: Vec<String> = Vec::new();
-        let start_line = app.buffers[0].vertical_scroll;
+        let start_line = app.buffers[app.current_buf_index].vertical_scroll;
         for (i, _) in visible_lines.iter().enumerate() {
             vec_nums.push((start_line + i).to_string())
         }
@@ -56,13 +56,14 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ])
         .split(editor_area);
 
-    let selection = &app.buffers[0].selection;
+    let selection = &app.buffers[app.current_buf_index].selection;
     let mut styled_lines: Vec<Line> = Vec::new();
-    let start_line = app.buffers[0].vertical_scroll;
-    let numbar_space = app.buffers[0].numbar_space;
+    let start_line = app.buffers[app.current_buf_index].vertical_scroll;
+    let numbar_space = app.buffers[app.current_buf_index].numbar_space;
 
     for (i, visible_line) in visible_lines.iter().enumerate() {
-        let line_content = app.buffers[0].get_visible_line_content(visible_line.to_owned());
+        let line_content =
+            app.buffers[app.current_buf_index].get_visible_line_content(visible_line.to_owned());
         let mut spans: Vec<Span> = Vec::new();
 
         for (char_idx, ch) in line_content.chars().enumerate() {
@@ -106,7 +107,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let file_text = Paragraph::new(styled_lines).style(Color::Rgb(164, 160, 232));
 
     // Get cursor position relative to the viewport
-    let viewport_cursor = app.buffers[0].get_viewport_cursor_pos();
+    let viewport_cursor = app.buffers[app.current_buf_index].get_viewport_cursor_pos();
     frame.set_cursor_position(Position {
         x: viewport_cursor.character as u16,
         y: viewport_cursor.line as u16,
@@ -174,18 +175,18 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let mode = format!(
         "  {} Mode :: {}",
         app.mode,
-        app.buffers[0]
+        app.buffers[app.current_buf_index]
             .file_path
             .clone()
             .unwrap_or("New File".to_string())
     );
     let cursor_pos = format!(
         "{}:{}",
-        app.buffers[0].current_position.line,
-        app.buffers[0]
+        app.buffers[app.current_buf_index].current_position.line,
+        app.buffers[app.current_buf_index]
             .current_position
             .character
-            .saturating_sub(app.buffers[0].numbar_space),
+            .saturating_sub(app.buffers[app.current_buf_index].numbar_space),
     );
     let area_width = editor_area_chunks[1].width as usize;
     let mode_width = mode.chars().count();
