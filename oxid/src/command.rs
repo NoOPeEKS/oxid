@@ -27,7 +27,7 @@ impl FromStr for Command {
         if let Some(cmd) = cmd_parts.next() {
             match cmd {
                 "q" => {
-                    if let None = cmd_parts.next() {
+                    if cmd_parts.next().is_none() {
                         Ok(Self::QuitCurrentFile)
                     } else {
                         anyhow::bail!(
@@ -36,7 +36,7 @@ impl FromStr for Command {
                     }
                 }
                 "w" => {
-                    if let None = cmd_parts.next() {
+                    if cmd_parts.next().is_none() {
                         Ok(Self::SaveCurrentFile)
                     } else {
                         anyhow::bail!(

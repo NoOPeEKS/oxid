@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::fs::OpenOptions;
+use std::io::BufReader;
 use std::sync::mpsc::Receiver;
+
+use ropey::Rope;
 
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
@@ -29,6 +33,8 @@ impl Display for Mode {
 
 pub struct App {
     pub mode: Mode,
+    pub tsize_x: usize,
+    pub tsize_y: usize,
     pub quitting: bool,
     pub buffers: Vec<Buffer>,
     pub current_buf_index: usize,
@@ -38,9 +44,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(buffers: Vec<Buffer>) -> Self {
+    pub fn new(buffers: Vec<Buffer>, tsize_x: usize, tsize_y: usize) -> Self {
         App {
             mode: Mode::Normal,
+            tsize_x,
+            tsize_y,
             quitting: false,
             buffers,
             current_buf_index: 0,
@@ -163,8 +171,14 @@ impl App {
                             self.mode = Mode::Normal;
                             self.command = None;
                         }
-                        // TODO: Implement the rest of these commands.
-                        Command::OpenFile(_) => todo!(":e command is not implemented yet!"),
+                        Command::OpenFile(file_path) => {
+                            if let Some(buffer) = self.create_new_buffer(file_path) {
+                                self.buffers.push(buffer);
+                                self.current_buf_index = self.buffers.len() - 1;
+                            }
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
                     }
                 }
                 Err(_) => {
@@ -177,6 +191,22 @@ impl App {
             self.mode = Mode::Normal;
             self.command = None;
         }
+    }
+
+    fn create_new_buffer(&self, file_path: String) -> Option<Buffer> {
+        if let Ok(file_handler) = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&file_path)
+        {
+            if let Ok(file_text) = Rope::from_reader(BufReader::new(file_handler)) {
+                let buf = Buffer::new(Some(file_path), file_text, self.tsize_x, self.tsize_y);
+                return Some(buf);
+            }
+            return None;
+        }
+        None
     }
 
     pub fn run(

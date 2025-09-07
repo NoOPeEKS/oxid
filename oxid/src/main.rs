@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     let mut buffers: Vec<Buffer> = Vec::new();
     buffers.push(Buffer::new(Some(file_path), file_text, tsize_x, tsize_y));
 
-    let mut app = App::new(buffers);
+    let mut app = App::new(buffers, tsize_x, tsize_y);
     let (event_sender, event_receiver) = channel::<EventKind>();
     std::thread::spawn(move || handle_events(event_sender));
     let result = app.run(event_receiver, &mut terminal);
