@@ -97,14 +97,11 @@ impl App {
             match Command::parse(cmd_str) {
                 Ok(cmd_type) => {
                     match cmd_type {
-                        Command::SaveCurrentFile(file_name) => {
-                            self.buffers.iter().for_each(|buf| {
-                                if let Some(file_path) = &buf.file_path {
-                                    if *file_path == file_name {
-                                        buf.save_file().unwrap();
-                                    }
-                                }
-                            });
+                        Command::SaveCurrentFile => {
+                            // TODO: Handle this gracefully.
+                            self.buffers[self.current_buf_index]
+                                .save_file()
+                                .expect("Could not save current file.");
                             self.mode = Mode::Normal;
                             self.command = None;
                         }
@@ -113,6 +110,22 @@ impl App {
                                 // TODO: Handle this better
                                 buf.save_file().expect("Could not save all files.");
                             });
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
+                        Command::QuitCurrentFile => {
+                            // If we only have 1 buffer, quit the app directly
+                            if self.buffers.len() == 1 {
+                                self.quitting = true;
+                            }
+                            // -2 because we are gonna remove one more right now, to avoid an extra assign.
+                            let num_buffers = self.buffers.len() - 2;
+                            _ = self.buffers.remove(self.current_buf_index);
+                            if self.current_buf_index + 1 >= num_buffers {
+                                self.current_buf_index = 0;
+                            } else {
+                                self.current_buf_index += 1;
+                            }
                             self.mode = Mode::Normal;
                             self.command = None;
                         }
@@ -130,13 +143,28 @@ impl App {
                             });
                             self.quitting = true;
                         }
+                        Command::NextBuffer => {
+                            // .len() and not .len() - 1 bc we want only 0 when index would be
+                            // greater than allowed index (len() - 1).
+                            if self.current_buf_index + 1 == self.buffers.len() {
+                                self.current_buf_index = 0;
+                            } else {
+                                self.current_buf_index += 1;
+                            }
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
+                        Command::PreviousBuffer => {
+                            if self.current_buf_index as isize - 1 == -1 {
+                                self.current_buf_index = self.buffers.len() - 1;
+                            } else {
+                                self.current_buf_index -= 1;
+                            }
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
                         // TODO: Implement the rest of these commands.
                         Command::OpenFile(_) => todo!(":e command is not implemented yet!"),
-                        Command::QuitCurrentFile(_) => {
-                            todo!(":q <file_name> is not implemented yet!")
-                        }
-                        Command::NextBuffer => todo!(":bn is not implemented yet!"),
-                        Command::PreviousBuffer => todo!(":bp is not implemented yet!"),
                     }
                 }
                 Err(_) => {
