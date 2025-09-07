@@ -4,6 +4,7 @@ use std::sync::mpsc::Receiver;
 
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
+use crate::command::Command;
 use crate::events::EventKind;
 use crate::ui::ui;
 
@@ -86,9 +87,60 @@ impl App {
     }
 
     pub fn apply_command(&mut self) {
-        // TODO: Handle the command.
-        self.mode = Mode::Normal;
-        self.command = None;
+        if let Some(cmd_str) = &self.command {
+            match Command::parse(cmd_str) {
+                Ok(cmd_type) => {
+                    match cmd_type {
+                        Command::SaveFile(file_name) => {
+                            self.buffers.iter().for_each(|buf| {
+                                if let Some(file_path) = &buf.file_path {
+                                    if *file_path == file_name {
+                                        buf.save_file().unwrap();
+                                    }
+                                }
+                            });
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
+                        Command::SaveAll => {
+                            self.buffers.iter().for_each(|buf| {
+                                // TODO: Handle this better
+                                buf.save_file().expect("Could not save all files.");
+                            });
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
+                        Command::QuitAll => {
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                            self.quitting = true;
+                        }
+                        Command::SaveQuitAll => {
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                            self.buffers.iter().for_each(|buf| {
+                                // TODO: Handle this better
+                                buf.save_file().expect("Could not save all files.");
+                            });
+                            self.quitting = true;
+                        }
+                        // TODO: Implement the rest of these commands.
+                        Command::OpenFile(_) => todo!(":e command is not implemented yet!"),
+                        Command::QuitFile(_) => todo!(":q <file_name> is not implemented yet!"),
+                        Command::NextBuffer => todo!(":bn is not implemented yet!"),
+                        Command::PreviousBuffer => todo!(":bp is not implemented yet!"),
+                    }
+                }
+                Err(_) => {
+                    // TODO: handle showing command error to editor
+                    self.mode = Mode::Normal;
+                    self.command = None;
+                }
+            }
+        } else {
+            self.mode = Mode::Normal;
+            self.command = None;
+        }
     }
 
     pub fn run(
@@ -288,6 +340,12 @@ impl App {
                             && (ch.is_alphanumeric() || ch.is_ascii_punctuation())
                         {
                             self.buffers[0].insert_char(ch);
+                        } else if self.mode == Mode::Command {
+                            if let Some(cmd_str) = &mut self.command {
+                                cmd_str.push(ch);
+                            } else {
+                                self.command = Some(String::from(ch));
+                            }
                         }
                     }
                     EventKind::Backspace => {
