@@ -11,6 +11,7 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 - **Normal Mode**: Navigate and manipulate text efficiently
 - **Insert Mode**: Type and edit text naturally
 - **Visual Mode**: Select and apply motions to your text
+- **Command Mode**: Apply the main vim commands to your buffers.
 
 ### ⌨️ **Vim-Inspired Navigation**
 - `h`, `j`, `k`, `l` - Move cursor left, down, up, right
@@ -69,6 +70,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `Ctrl+s` | Save current file |
 | `Shift+i` | Insert at start of line |
 | `Shift+a` | Append at end of line |
+| `:` | Enter command mode |
 
 ### Insert Mode
 | Key | Action |
@@ -93,6 +95,19 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `0` | Move selection to the start of the line |
 | `$` | Move selection to the end of the line |
 | `y` | Yank current selection to default register |
+
+### Command Mode
+| Command | Action |
+|-----|--------|
+| `:w` | Save current buffer file |
+| `:wa` | Save all buffer files |
+| `:q` | Quit current buffer |
+| `:qa` | Quit all buffers|
+| `:wqa` | Save and quit all buffers |
+| `:e <file_path>` | Open or create a new file |
+| `:bn` | Move to next buffer |
+| `:bp` | Move to previous buffer |
+| `:<line_number>` | Move to specified line on current buffer |
 
 ## 📋 Planned Features
 
