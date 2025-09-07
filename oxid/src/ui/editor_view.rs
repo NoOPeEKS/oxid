@@ -1,6 +1,7 @@
 use super::debug::DebugPopup;
-use crate::app::App;
+use crate::app::{App, Mode};
 use crate::buffer::STATUSBAR_SPACE;
+use crate::ui::command::CommandPopup;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -25,19 +26,19 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let top_area = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(app.buffers[0].numbar_space as u16),
+            Constraint::Length(app.buffers[app.current_buf_index].numbar_space as u16),
             Constraint::Fill(1),
         ])
         .split(terminal_area[0]);
 
     // Get visible lines for the current viewport
-    let visible_lines = app.buffers[0].get_visible_lines();
+    let visible_lines = app.buffers[app.current_buf_index].get_visible_lines();
 
     // Render line numbers for only the visible lines
     let numbar_area = top_area[0];
     let nums_of_lines = {
         let mut vec_nums: Vec<String> = Vec::new();
-        let start_line = app.buffers[0].vertical_scroll;
+        let start_line = app.buffers[app.current_buf_index].vertical_scroll;
         for (i, _) in visible_lines.iter().enumerate() {
             vec_nums.push((start_line + i).to_string())
         }
@@ -55,13 +56,14 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ])
         .split(editor_area);
 
-    let selection = &app.buffers[0].selection;
+    let selection = &app.buffers[app.current_buf_index].selection;
     let mut styled_lines: Vec<Line> = Vec::new();
-    let start_line = app.buffers[0].vertical_scroll;
-    let numbar_space = app.buffers[0].numbar_space;
+    let start_line = app.buffers[app.current_buf_index].vertical_scroll;
+    let numbar_space = app.buffers[app.current_buf_index].numbar_space;
 
     for (i, visible_line) in visible_lines.iter().enumerate() {
-        let line_content = app.buffers[0].get_visible_line_content(visible_line.to_owned());
+        let line_content =
+            app.buffers[app.current_buf_index].get_visible_line_content(visible_line.to_owned());
         let mut spans: Vec<Span> = Vec::new();
 
         for (char_idx, ch) in line_content.chars().enumerate() {
@@ -105,41 +107,66 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let file_text = Paragraph::new(styled_lines).style(Color::Rgb(164, 160, 232));
 
     // Get cursor position relative to the viewport
-    let viewport_cursor = app.buffers[0].get_viewport_cursor_pos();
+    let viewport_cursor = app.buffers[app.current_buf_index].get_viewport_cursor_pos();
     frame.set_cursor_position(Position {
         x: viewport_cursor.character as u16,
         y: viewport_cursor.line as u16,
     });
 
-    if !app.debug_mode {
+    // Handle different modes
+    if app.mode == Mode::Command {
+        // Render editor content first
         frame.render_widget(file_text, editor_area_chunks[0]);
-    } else {
+
+        // Then render command popup on top
+        let editor_subareas = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(6),
+                Constraint::Percentage(6),
+                Constraint::Percentage(6),
+                Constraint::Fill(1),
+            ])
+            .split(editor_area_chunks[0]);
+        let main_area = editor_subareas[1];
+        let popup_subareas = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Fill(1),
+            ])
+            .split(main_area);
+
+        let command_popup = CommandPopup::default()
+            .content(app.command.as_deref().unwrap_or(""))
+            .style(Color::Rgb(164, 160, 232).into())
+            .title("Command")
+            .title_style(Style::new().white().bold())
+            .border_style(Color::Black.into());
+        frame.render_widget(command_popup, popup_subareas[1]);
+    } else if app.debug_mode {
+        // Debug mode rendering
         let editor_subareas = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(75), Constraint::Percentage(25)])
             .split(editor_area_chunks[0]);
         frame.render_widget(file_text, editor_subareas[0]);
 
-        let mut curr_sel = format!("{:?}", app.buffers[0].selection.clone());
-        let curr_selected_value = format!("{:?}", app.buffers[0].selected_string.clone());
-
-        curr_sel.push('\n');
-        curr_sel.push_str(&curr_selected_value);
-
-        let default_register_contents = app.registers.get("default");
-        curr_sel.push('\n');
-
-        curr_sel.push_str(
-            default_register_contents.unwrap_or(&"Nothing to default register yet.".to_string()),
-        );
+        let mode = app.mode.to_string();
+        let command = app.command.clone();
+        let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
 
         let popup = DebugPopup::default()
-            .content(&curr_sel)
+            .content(&dbg_str)
             .style(Style::new().yellow())
             .title("Debug selection")
             .title_style(Style::new().white().bold())
             .border_style(Style::new().red());
         frame.render_widget(popup, editor_subareas[1]);
+    } else {
+        // Normal mode rendering
+        frame.render_widget(file_text, editor_area_chunks[0]);
     }
 
     let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
@@ -148,18 +175,18 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let mode = format!(
         "  {} Mode :: {}",
         app.mode,
-        app.buffers[0]
+        app.buffers[app.current_buf_index]
             .file_path
             .clone()
             .unwrap_or("New File".to_string())
     );
     let cursor_pos = format!(
         "{}:{}",
-        app.buffers[0].current_position.line,
-        app.buffers[0]
+        app.buffers[app.current_buf_index].current_position.line,
+        app.buffers[app.current_buf_index]
             .current_position
             .character
-            .saturating_sub(app.buffers[0].numbar_space),
+            .saturating_sub(app.buffers[app.current_buf_index].numbar_space),
     );
     let area_width = editor_area_chunks[1].width as usize;
     let mode_width = mode.chars().count();

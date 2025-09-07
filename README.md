@@ -11,6 +11,7 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 - **Normal Mode**: Navigate and manipulate text efficiently
 - **Insert Mode**: Type and edit text naturally
 - **Visual Mode**: Select and apply motions to your text
+- **Command Mode**: Apply the main vim commands to your buffers.
 
 ### ⌨️ **Vim-Inspired Navigation**
 - `h`, `j`, `k`, `l` - Move cursor left, down, up, right
@@ -69,6 +70,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `Ctrl+s` | Save current file |
 | `Shift+i` | Insert at start of line |
 | `Shift+a` | Append at end of line |
+| `:` | Enter command mode |
 
 ### Insert Mode
 | Key | Action |
@@ -94,6 +96,19 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `$` | Move selection to the end of the line |
 | `y` | Yank current selection to default register |
 
+### Command Mode
+| Command | Action |
+|-----|--------|
+| `:w` | Save current buffer file |
+| `:wa` | Save all buffer files |
+| `:q` | Quit current buffer |
+| `:qa` | Quit all buffers|
+| `:wqa` | Save and quit all buffers |
+| `:e <file_path>` | Open or create a new file |
+| `:bn` | Move to next buffer |
+| `:bp` | Move to previous buffer |
+| `:<line_number>` | Move to specified line on current buffer |
+
 ## 📋 Planned Features
 
 > **Note**: The following features are planned or currently under development. Some are top-priority core functionalities and others are features that will be implemented in future releases.
@@ -107,21 +122,24 @@ As of now, the editor will either open an existing file or create a new one. It 
 ### 📁 **File Management**
 - [ ] **File Operations**
   - [ ] Save as
-  - [ ] Multi-file editing
+  - [x] Multi-file editing
 
 ### 🎨 **User Interface Enhancements**
 - [ ] **Syntax Highlighting**
   - [ ] Color scheme
 
 ### **Command Mode**
-- [ ] **File Management**
-    - [ ] Save (:w)
-    - [ ] Quit (:q)
-    - [ ] Open new buffer (:e <file>)
-    - [ ] Go to next buffer (:bn)
-    - [ ] Go to prev buffer (:bp)
+- [x] **File Management**
+    - [x] Save (:w)
+    - [x] Save All (:wa)
+    - [x] Quit (:q)
+    - [x] Quit All (:qa)
+    - [x] Save and Quit All (:wqa)
+    - [x] Open new buffer (:e <file>)
+    - [x] Go to next buffer (:bn)
+    - [x] Go to prev buffer (:bp)
 - [ ] **Navigation**
-  - [ ] Go to line number (`:line`)
+  - [x] Go to line number (`:line`)
   - [ ] Search
 
 ### 🧩 **Language Server Protocol**
