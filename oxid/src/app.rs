@@ -179,6 +179,22 @@ impl App {
                             self.mode = Mode::Normal;
                             self.command = None;
                         }
+                        Command::GoToLine(line_num) => {
+                            let max_buf_lines =
+                                self.buffers[self.current_buf_index].file_text.len_lines() - 1;
+
+                            if line_num == -1 || line_num > max_buf_lines as isize {
+                                self.buffers[self.current_buf_index].current_position.line =
+                                    max_buf_lines;
+                                self.buffers[self.current_buf_index].ensure_cursor_visible();
+                            } else {
+                                self.buffers[self.current_buf_index].current_position.line =
+                                    line_num as usize;
+                                self.buffers[self.current_buf_index].ensure_cursor_visible();
+                            }
+                            self.mode = Mode::Normal;
+                            self.command = None;
+                        }
                     }
                 }
                 Err(_) => {

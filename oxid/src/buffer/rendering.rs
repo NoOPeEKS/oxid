@@ -2,7 +2,7 @@ use super::core::Buffer;
 use super::types::BufferPosition;
 
 impl Buffer {
-    pub(super) fn ensure_cursor_visible(&mut self) {
+    pub fn ensure_cursor_visible(&mut self) {
         let cursor_line = self.current_position.line;
         let viewport_bottom = self.vertical_scroll + self.viewport_height;
 

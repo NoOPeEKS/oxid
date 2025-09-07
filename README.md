@@ -124,7 +124,7 @@ As of now, the editor will either open an existing file or create a new one. It 
     - [x] Go to next buffer (:bn)
     - [x] Go to prev buffer (:bp)
 - [ ] **Navigation**
-  - [ ] Go to line number (`:line`)
+  - [x] Go to line number (`:line`)
   - [ ] Search
 
 ### 🧩 **Language Server Protocol**

@@ -1,16 +1,18 @@
 use std::str::FromStr;
 
 pub enum Command {
-    SaveAll,     // "wa"
-    QuitAll,     // "qa"
+    SaveAll,     // ":wa"
+    QuitAll,     // ":qa"
     SaveQuitAll, // "wqa"
 
-    QuitCurrentFile,  // "q"
-    SaveCurrentFile,  // "w"
-    OpenFile(String), // "e file_name"
+    QuitCurrentFile,  // ":q"
+    SaveCurrentFile,  // ":w"
+    OpenFile(String), // ":e file_name"
 
-    NextBuffer,     // "bn"
-    PreviousBuffer, // "bp"
+    NextBuffer,     // ":bn"
+    PreviousBuffer, // ":bp"
+
+    GoToLine(isize), // ":12"
 }
 
 impl Command {
@@ -30,18 +32,14 @@ impl FromStr for Command {
                     if cmd_parts.next().is_none() {
                         Ok(Self::QuitCurrentFile)
                     } else {
-                        anyhow::bail!(
-                            ":q command does not accept sub arguments"
-                        )
+                        anyhow::bail!(":q command does not accept sub arguments")
                     }
                 }
                 "w" => {
                     if cmd_parts.next().is_none() {
                         Ok(Self::SaveCurrentFile)
                     } else {
-                        anyhow::bail!(
-                            ":w command does not accept sub arguments"
-                        )
+                        anyhow::bail!(":w command does not accept sub arguments")
                     }
                 }
                 "e" => {
@@ -60,6 +58,10 @@ impl FromStr for Command {
 
                 "bn" => Ok(Self::NextBuffer),
                 "bp" => Ok(Self::PreviousBuffer),
+
+                num if num.parse::<usize>().is_ok() => {
+                    Ok(Self::GoToLine(num.parse::<isize>().unwrap_or(-1)))
+                }
 
                 _ => anyhow::bail!("Unknown command: {cmd}"),
             }
