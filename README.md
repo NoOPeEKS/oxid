@@ -107,7 +107,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 ### 📁 **File Management**
 - [ ] **File Operations**
   - [ ] Save as
-  - [ ] Multi-file editing
+  - [x] Multi-file editing
 
 ### 🎨 **User Interface Enhancements**
 - [ ] **Syntax Highlighting**
