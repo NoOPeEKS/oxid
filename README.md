@@ -114,15 +114,15 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [ ] Color scheme
 
 ### **Command Mode**
-- [ ] **File Management**
-    - [ ] Save (:w)
+- [x] **File Management**
+    - [x] Save (:w)
     - [x] Save All (:wa)
-    - [ ] Quit (:q)
+    - [x] Quit (:q)
     - [x] Quit All (:qa)
     - [x] Save and Quit All (:wqa)
-    - [ ] Open new buffer (:e <file>)
-    - [ ] Go to next buffer (:bn)
-    - [ ] Go to prev buffer (:bp)
+    - [x] Open new buffer (:e <file>)
+    - [x] Go to next buffer (:bn)
+    - [x] Go to prev buffer (:bp)
 - [ ] **Navigation**
   - [ ] Go to line number (`:line`)
   - [ ] Search
