@@ -1,6 +1,7 @@
 use super::debug::DebugPopup;
-use crate::app::App;
+use crate::app::{App, Mode};
 use crate::buffer::STATUSBAR_SPACE;
+use crate::ui::command::CommandPopup;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -111,17 +112,48 @@ pub fn ui(frame: &mut Frame, app: &App) {
         y: viewport_cursor.line as u16,
     });
 
-    if !app.debug_mode {
+    // Handle different modes
+    if app.mode == Mode::Command {
+        // Render editor content first
         frame.render_widget(file_text, editor_area_chunks[0]);
-    } else {
+
+        // Then render command popup on top
+        let editor_subareas = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(6),
+                Constraint::Percentage(6),
+                Constraint::Percentage(6),
+                Constraint::Fill(1),
+            ])
+            .split(editor_area_chunks[0]);
+        let main_area = editor_subareas[1];
+        let popup_subareas = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Fill(1),
+            ])
+            .split(main_area);
+
+        let command_popup = CommandPopup::default()
+            .content(app.command.as_deref().unwrap_or(""))
+            .style(Color::Rgb(164, 160, 232).into())
+            .title("Command")
+            .title_style(Style::new().white().bold())
+            .border_style(Color::Black.into());
+        frame.render_widget(command_popup, popup_subareas[1]);
+    } else if app.debug_mode {
+        // Debug mode rendering
         let editor_subareas = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(75), Constraint::Percentage(25)])
             .split(editor_area_chunks[0]);
         frame.render_widget(file_text, editor_subareas[0]);
+
         let mode = app.mode.to_string();
         let command = app.command.clone();
-
         let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
 
         let popup = DebugPopup::default()
@@ -131,6 +163,9 @@ pub fn ui(frame: &mut Frame, app: &App) {
             .title_style(Style::new().white().bold())
             .border_style(Style::new().red());
         frame.render_widget(popup, editor_subareas[1]);
+    } else {
+        // Normal mode rendering
+        frame.render_widget(file_text, editor_area_chunks[0]);
     }
 
     let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
