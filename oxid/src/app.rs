@@ -1,10 +1,12 @@
+use ratatui::crossterm::cursor::SetCursorStyle;
+use ratatui::crossterm::execute;
+use ropey::Rope;
+
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::sync::mpsc::Receiver;
-
-use ropey::Rope;
 
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
@@ -58,15 +60,17 @@ impl App {
         }
     }
 
-    pub fn insert_mode(&mut self) {
-        self.mode = Mode::Insert
+    pub fn insert_mode(&mut self, terminal: &mut ratatui::DefaultTerminal) {
+        self.mode = Mode::Insert;
+        execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBar).unwrap();
     }
 
-    pub fn normal_mode(&mut self) {
-        self.mode = Mode::Normal
+    pub fn normal_mode(&mut self, terminal: &mut ratatui::DefaultTerminal) {
+        self.mode = Mode::Normal;
+        execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap();
     }
 
-    pub fn visual_mode(&mut self) {
+    pub fn visual_mode(&mut self, terminal: &mut ratatui::DefaultTerminal) {
         if self.mode == Mode::Normal {
             // First time on visual, so start saving selection.
             self.mode = Mode::Visual;
@@ -81,7 +85,7 @@ impl App {
             self.buffers[self.current_buf_index].update_selected_string();
         } else {
             // If on whatever mode but normal, stop selecting and reset.
-            self.mode = Mode::Normal;
+            self.normal_mode(terminal);
             self.buffers[self.current_buf_index].selection = None;
             self.buffers[self.current_buf_index].update_selected_string();
         }
@@ -100,7 +104,7 @@ impl App {
         }
     }
 
-    pub fn apply_command(&mut self) {
+    pub fn apply_command(&mut self, terminal: &mut ratatui::DefaultTerminal) {
         if let Some(cmd_str) = &self.command {
             match Command::parse(cmd_str) {
                 Ok(cmd_type) => {
@@ -110,7 +114,7 @@ impl App {
                             self.buffers[self.current_buf_index]
                                 .save_file()
                                 .expect("Could not save current file.");
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::SaveAll => {
@@ -118,7 +122,7 @@ impl App {
                                 // TODO: Handle this better
                                 buf.save_file().expect("Could not save all files.");
                             });
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::QuitCurrentFile => {
@@ -134,16 +138,16 @@ impl App {
                             } else {
                                 self.current_buf_index += 1;
                             }
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::QuitAll => {
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                             self.quitting = true;
                         }
                         Command::SaveQuitAll => {
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                             self.buffers.iter().for_each(|buf| {
                                 // TODO: Handle this better
@@ -159,7 +163,7 @@ impl App {
                             } else {
                                 self.current_buf_index += 1;
                             }
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::PreviousBuffer => {
@@ -168,7 +172,7 @@ impl App {
                             } else {
                                 self.current_buf_index -= 1;
                             }
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::OpenFile(file_path) => {
@@ -176,7 +180,7 @@ impl App {
                                 self.buffers.push(buffer);
                                 self.current_buf_index = self.buffers.len() - 1;
                             }
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                         Command::GoToLine(line_num) => {
@@ -192,19 +196,19 @@ impl App {
                                     line_num as usize;
                                 self.buffers[self.current_buf_index].ensure_cursor_visible();
                             }
-                            self.mode = Mode::Normal;
+                            self.normal_mode(terminal);
                             self.command = None;
                         }
                     }
                 }
                 Err(_) => {
                     // TODO: handle showing command error to editor
-                    self.mode = Mode::Normal;
+                    self.normal_mode(terminal);
                     self.command = None;
                 }
             }
         } else {
-            self.mode = Mode::Normal;
+            self.normal_mode(terminal);
             self.command = None;
         }
     }
@@ -236,11 +240,11 @@ impl App {
                 match event {
                     EventKind::SaveFile => {
                         self.buffers[self.current_buf_index].save_file()?;
-                        self.normal_mode();
+                        self.normal_mode(terminal);
                     }
                     EventKind::Quit => self.quitting = true,
                     EventKind::NormalMode => {
-                        self.normal_mode();
+                        self.normal_mode(terminal);
                         self.buffers[self.current_buf_index].selection = None;
                         self.buffers[self.current_buf_index].selected_string = None;
                     }
@@ -258,7 +262,7 @@ impl App {
                             let vis = self.mode == Mode::Visual;
                             match ch {
                                 ':' => self.command_mode(),
-                                'v' => self.visual_mode(),
+                                'v' => self.visual_mode(terminal),
                                 'h' => {
                                     self.buffers[self.current_buf_index].move_cursor_left();
                                     if vis {
@@ -380,13 +384,13 @@ impl App {
                                 }
                                 'i' => {
                                     if !vis {
-                                        self.insert_mode()
+                                        self.insert_mode(terminal)
                                     }
                                 }
                                 'o' => {
                                     if !vis {
                                         self.buffers[self.current_buf_index].insert_line_below();
-                                        self.insert_mode();
+                                        self.insert_mode(terminal);
                                     }
                                 }
                                 '0' => {
@@ -432,7 +436,7 @@ impl App {
                                                 String::from("default"),
                                                 selection.to_string(),
                                             );
-                                            self.normal_mode();
+                                            self.normal_mode(terminal);
                                             self.buffers[self.current_buf_index].selection = None;
                                         }
                                     }
@@ -458,11 +462,11 @@ impl App {
                             match ch {
                                 'I' => {
                                     self.buffers[self.current_buf_index].move_cursor_start_line();
-                                    self.insert_mode();
+                                    self.insert_mode(terminal);
                                 }
                                 'A' => {
                                     self.buffers[self.current_buf_index].move_cursor_end_line();
-                                    self.insert_mode();
+                                    self.insert_mode(terminal);
                                 }
                                 _ => {}
                             }
@@ -492,7 +496,7 @@ impl App {
                         if self.mode == Mode::Insert {
                             self.buffers[self.current_buf_index].enter_key();
                         } else if self.mode == Mode::Command {
-                            self.apply_command();
+                            self.apply_command(terminal);
                         }
                     }
                 }
