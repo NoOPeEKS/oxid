@@ -1,3 +1,5 @@
+mod lsp;
+
 use ratatui::crossterm::cursor::SetCursorStyle;
 use ratatui::crossterm::execute;
 use ropey::Rope;
@@ -9,6 +11,7 @@ use std::io::BufReader;
 use std::sync::mpsc::Receiver;
 
 use oxid_lsp::client::LspClient;
+use oxid_lsp::types::{CompletionList, Diagnostic, Hover};
 
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
@@ -45,6 +48,10 @@ pub struct App {
     pub registers: HashMap<String, String>,
     pub command: Option<String>,
     pub lsp_client: LspClient,
+    pub diagnostics: Option<Vec<Diagnostic>>,
+    pub completion_list: Option<CompletionList>,
+    pub hover: Option<Hover>,
+    pub error: Option<String>,
     pub debug_mode: bool,
 }
 
@@ -54,6 +61,13 @@ impl App {
         client
             .initialize()
             .expect("Could not initialize the LSP Client");
+        let file_path = buffers[0]
+            .file_path
+            .clone()
+            .expect("Could not extract file path on init");
+        client
+            .did_open(&file_path, buffers[0].file_text.to_string().as_ref())
+            .expect("Could not send initial textDocument/didOpen request.");
         App {
             mode: Mode::Normal,
             tsize_x,
@@ -64,7 +78,11 @@ impl App {
             registers: HashMap::from([(String::from("default"), String::new())]),
             command: None,
             lsp_client: client,
-            debug_mode: false,
+            diagnostics: None,
+            completion_list: None,
+            hover: None,
+            debug_mode: true,
+            error: None,
         }
     }
 
@@ -136,6 +154,7 @@ impl App {
                         Command::QuitCurrentFile => {
                             // If we only have 1 buffer, quit the app directly
                             if self.buffers.len() == 1 {
+                                _ = self.lsp_client.shutdown();
                                 self.quitting = true;
                             }
                             // -2 because we are gonna remove one more right now, to avoid an extra assign.
@@ -152,6 +171,7 @@ impl App {
                         Command::QuitAll => {
                             self.normal_mode(terminal);
                             self.command = None;
+                            _ = self.lsp_client.shutdown();
                             self.quitting = true;
                         }
                         Command::SaveQuitAll => {
@@ -161,6 +181,7 @@ impl App {
                                 // TODO: Handle this better
                                 buf.save_file().expect("Could not save all files.");
                             });
+                            _ = self.lsp_client.shutdown();
                             self.quitting = true;
                         }
                         Command::NextBuffer => {
@@ -246,6 +267,31 @@ impl App {
             terminal.draw(|frame| ui(frame, self))?;
             if let Ok(event) = event_receiver.recv() {
                 match event {
+                    EventKind::RequestCompletion => {
+                        if self.mode == Mode::Insert {
+                            if let Some(file_path) = &self.buffers[self.current_buf_index].file_path
+                            {
+                                let file_contents =
+                                    self.buffers[self.current_buf_index].file_text.to_string();
+
+                                self.lsp_client.did_change(file_path, &file_contents)?;
+
+                                self.completion_list = match self.lsp_client.request_completion(
+                                    file_path,
+                                    self.buffers[self.current_buf_index].current_position.line,
+                                    self.buffers[self.current_buf_index]
+                                        .current_position
+                                        .character,
+                                ) {
+                                    Ok(opt) => opt,
+                                    Err(err) => {
+                                        self.error = Some(err.to_string());
+                                        None
+                                    }
+                                }
+                            }
+                        }
+                    }
                     EventKind::SaveFile => {
                         self.buffers[self.current_buf_index].save_file()?;
                         self.normal_mode(terminal);
@@ -478,6 +524,9 @@ impl App {
                                 'A' => {
                                     self.buffers[self.current_buf_index].move_cursor_end_line();
                                     self.insert_mode(terminal);
+                                }
+                                'K' => {
+                                    // TODO: Handle hover here.
                                 }
                                 _ => {}
                             }

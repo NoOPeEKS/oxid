@@ -434,7 +434,7 @@ impl LspClient {
     ) -> anyhow::Result<Option<CompletionList>> {
         let params = TextDocumentPositionParams {
             text_document: TextDocumentIdentifier {
-                uri: uri.to_owned(),
+                uri: format!("file://{uri}"),
             },
             position: Position { line, character },
         };
@@ -464,7 +464,10 @@ impl LspClient {
         }
     }
 
-    pub fn get_file_diagnostic(&mut self, file_path: &str) -> anyhow::Result<Option<Vec<Diagnostic>>> {
+    pub fn get_file_diagnostic(
+        &mut self,
+        file_path: &str,
+    ) -> anyhow::Result<Option<Vec<Diagnostic>>> {
         match self.diagnostics.lock() {
             Ok(diagnostics_map) => Ok(diagnostics_map.get(file_path).cloned()),
             Err(_) => anyhow::bail!("Failed to acquire lock on diagnostics"),

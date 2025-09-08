@@ -118,6 +118,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // Render editor content first
         frame.render_widget(file_text, editor_area_chunks[0]);
 
+        // TODO: If the zoom is too much, it doesn't render the command popup correctly.
         // Then render command popup on top
         let editor_subareas = Layout::default()
             .direction(Direction::Vertical)
@@ -153,9 +154,11 @@ pub fn ui(frame: &mut Frame, app: &App) {
             .split(editor_area_chunks[0]);
         frame.render_widget(file_text, editor_subareas[0]);
 
-        let mode = app.mode.to_string();
-        let command = app.command.clone();
-        let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
+        // let mode = app.mode.to_string();
+        // let command = app.command.clone();
+        // let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
+        let cmp_list = &app.completion_list;
+        let dbg_str = format!("COMPLETION LIST: \n{cmp_list:?}");
 
         let popup = DebugPopup::default()
             .content(&dbg_str)
