@@ -8,6 +8,8 @@ use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::sync::mpsc::Receiver;
 
+use oxid_lsp::client::LspClient;
+
 use crate::buffer::Buffer;
 use crate::buffer::types::Selection;
 use crate::command::Command;
@@ -42,11 +44,16 @@ pub struct App {
     pub current_buf_index: usize,
     pub registers: HashMap<String, String>,
     pub command: Option<String>,
+    pub lsp_client: LspClient,
     pub debug_mode: bool,
 }
 
 impl App {
     pub fn new(buffers: Vec<Buffer>, tsize_x: usize, tsize_y: usize) -> Self {
+        let mut client = oxid_lsp::client::start_lsp().expect("Could not start LSP");
+        client
+            .initialize()
+            .expect("Could not initialize the LSP Client");
         App {
             mode: Mode::Normal,
             tsize_x,
@@ -56,6 +63,7 @@ impl App {
             current_buf_index: 0,
             registers: HashMap::from([(String::from("default"), String::new())]),
             command: None,
+            lsp_client: client,
             debug_mode: false,
         }
     }
@@ -242,7 +250,10 @@ impl App {
                         self.buffers[self.current_buf_index].save_file()?;
                         self.normal_mode(terminal);
                     }
-                    EventKind::Quit => self.quitting = true,
+                    EventKind::Quit => {
+                        _ = self.lsp_client.shutdown();
+                        self.quitting = true;
+                    }
                     EventKind::NormalMode => {
                         self.normal_mode(terminal);
                         self.buffers[self.current_buf_index].selection = None;

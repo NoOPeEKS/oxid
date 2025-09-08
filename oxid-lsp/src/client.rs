@@ -235,7 +235,7 @@ pub struct LspClient {
 }
 
 impl LspClient {
-    fn initialize(&mut self) -> anyhow::Result<()> {
+    pub fn initialize(&mut self) -> anyhow::Result<()> {
         let initialize_params: InitializeParams = get_client_capabilities();
 
         let initialize_params = match serde_json::to_value(&initialize_params) {
@@ -288,7 +288,7 @@ impl LspClient {
         }
     }
 
-    fn did_open(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+    pub fn did_open(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
         let params = json!({
             "textDocument": TextDocumentItem {
                 uri: format!("file://{file_path}"),
@@ -302,7 +302,7 @@ impl LspClient {
         Ok(())
     }
 
-    fn did_change(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+    pub fn did_change(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
         // TODO: In the future, handle differences between Full sync and Incremental sync.
         // let sync_kind = match &self.server_capabilities.text_document_sync {
         //     Some(sync) => match sync.change {
@@ -331,7 +331,7 @@ impl LspClient {
         Ok(())
     }
 
-    fn did_save(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
+    pub fn did_save(&mut self, file_path: &str, file_contents: &str) -> anyhow::Result<()> {
         let include_text = match &self.server_capabilities.text_document_sync {
             Some(td_sync_cap_kind) => match td_sync_cap_kind {
                 TextDocumentSyncCapability::Options(save_options) => match &save_options.save {
@@ -376,7 +376,7 @@ impl LspClient {
         Ok(())
     }
 
-    fn did_close(&mut self, file_path: &str) -> anyhow::Result<()> {
+    pub fn did_close(&mut self, file_path: &str) -> anyhow::Result<()> {
         let params = json!({
             "textDocument": TextDocumentIdentifier{
                 uri: format!("file://{file_path}")
@@ -388,7 +388,7 @@ impl LspClient {
         Ok(())
     }
 
-    fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
+    pub fn hover(&mut self, file_path: &str, position: Position) -> anyhow::Result<Hover> {
         let params = json!({
             "textDocument": {
                 "uri": format!("file://{}", file_path),
@@ -426,7 +426,7 @@ impl LspClient {
         }
     }
 
-    fn request_completion(
+    pub fn request_completion(
         &mut self,
         uri: &str,
         line: usize,
@@ -464,7 +464,7 @@ impl LspClient {
         }
     }
 
-    fn get_file_diagnostic(&mut self, file_path: &str) -> anyhow::Result<Option<Vec<Diagnostic>>> {
+    pub fn get_file_diagnostic(&mut self, file_path: &str) -> anyhow::Result<Option<Vec<Diagnostic>>> {
         match self.diagnostics.lock() {
             Ok(diagnostics_map) => Ok(diagnostics_map.get(file_path).cloned()),
             Err(_) => anyhow::bail!("Failed to acquire lock on diagnostics"),
@@ -504,7 +504,7 @@ impl LspClient {
         }
     }
 
-    fn shutdown(&mut self) -> anyhow::Result<()> {
+    pub fn shutdown(&mut self) -> anyhow::Result<()> {
         self.send_request("shutdown", serde_json::Value::Null)?;
         self.send_notification("exit", serde_json::Value::Null)?;
         let start = Instant::now();
