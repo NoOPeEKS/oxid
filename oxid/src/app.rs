@@ -1,5 +1,3 @@
-mod lsp;
-
 use ratatui::crossterm::cursor::SetCursorStyle;
 use ratatui::crossterm::execute;
 use ropey::Rope;
