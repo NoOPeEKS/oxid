@@ -1,5 +1,5 @@
 use super::debug::DebugPopup;
-use crate::app::{App, Mode};
+use crate::app::{App, modes::Mode};
 use crate::buffer::STATUSBAR_SPACE;
 use crate::ui::command::CommandPopup;
 use ratatui::{
