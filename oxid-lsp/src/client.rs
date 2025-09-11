@@ -130,6 +130,7 @@ pub fn start_lsp() -> anyhow::Result<LspClient> {
     let mut lsp = Command::new("rust-analyzer")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()?;
     let stdin = lsp.stdin.take().unwrap();
     let stdout = lsp.stdout.take().unwrap();
