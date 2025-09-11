@@ -1,15 +1,15 @@
-use super::debug::DebugPopup;
-use crate::app::{App, modes::Mode};
-use crate::buffer::STATUSBAR_SPACE;
-use crate::ui::command::CommandPopup;
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Position},
-    prelude::Stylize,
+    layout::{Constraint, Direction, Layout, Position},
+    prelude::{Alignment, Stylize},
     style::{Color, Style, palette::tailwind::PURPLE},
     text::{Line, Span},
     widgets::{Block, Paragraph, Wrap},
 };
+
+use crate::app::{App, modes::Mode};
+use crate::buffer::STATUSBAR_SPACE;
+use crate::ui::{command::CommandPopup, completion::render_completion_table, debug::DebugPopup};
 
 pub fn ui(frame: &mut Frame, app: &App) {
     let background = Block::default().style(Style::default().bg(Color::Rgb(59, 34, 76)));
@@ -82,8 +82,8 @@ pub fn ui(frame: &mut Frame, app: &App) {
                     (&sel.end, &sel.start)
                 };
 
-                // Is in selection if line is bigger than start line or same line but char bigger
-                // than start char, and if line is less than or equal to line end and character is
+                // Is in selection if the line is bigger than start line or same line but char
+                // bigger than start char, and if the line is less than or equal to line end and character is
                 // less than the end character.
                 (abs_line > start.line
                     || (abs_line == start.line && char_idx >= start.character - numbar_space))
@@ -171,6 +171,9 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // Normal mode rendering
         frame.render_widget(file_text, editor_area_chunks[0]);
     }
+
+    // Render completion table if available (this should be rendered last to appear on top)
+    render_completion_table(frame, app, editor_area_chunks[0]);
 
     let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
 

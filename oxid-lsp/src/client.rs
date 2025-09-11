@@ -127,7 +127,8 @@ pub fn lsp_send_notification(
 }
 
 pub fn start_lsp() -> anyhow::Result<LspClient> {
-    let mut lsp = Command::new("rust-analyzer")
+    let mut lsp = Command::new("pyrefly")
+        .arg("lsp")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

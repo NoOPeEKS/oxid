@@ -365,6 +365,24 @@ pub struct CompletionList {
     pub item_defaults: Option<ItemDefaults>,
 }
 
+impl CompletionList {
+    pub fn iter(&self) -> std::slice::Iter<'_, CompletionItem> {
+        self.items.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, CompletionItem> {
+        self.items.iter_mut()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemDefaults {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 
 use oxid_lsp::client::LspClient;
-use oxid_lsp::types::{CompletionList, Diagnostic, Hover};
+use oxid_lsp::types::{CompletionItem, CompletionList, Diagnostic, Hover};
 
 use crate::buffer::Buffer;
 use crate::events::EventKind;
@@ -10,6 +10,7 @@ use crate::ui::ui;
 
 mod commands;
 mod events;
+mod lsp;
 pub mod modes;
 
 pub struct App {
@@ -24,6 +25,7 @@ pub struct App {
     pub lsp_client: LspClient,
     pub diagnostics: Option<Vec<Diagnostic>>,
     pub completion_list: Option<CompletionList>,
+    pub selected_completion: Option<CompletionItem>,
     pub hover: Option<Hover>,
     pub error: Option<String>,
     pub debug_mode: bool,
@@ -54,6 +56,7 @@ impl App {
             lsp_client: client,
             diagnostics: None,
             completion_list: None,
+            selected_completion: None,
             hover: None,
             debug_mode: true,
             error: None,
