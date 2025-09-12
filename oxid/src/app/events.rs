@@ -56,6 +56,10 @@ impl App {
                         self.error = Some(err.to_string());
                         None
                     }
+                };
+                if self.completion_list.is_some() {
+                    self.choose_completion(0);
+                    self.table_state.select(Some(0));
                 }
             }
         }
