@@ -78,6 +78,9 @@ impl App {
         self.set_mode(terminal, Mode::Normal);
         self.buffers[self.current_buf_index].selection = None;
         self.buffers[self.current_buf_index].selected_string = None;
+        self.completion_offset = 0;
+        self.selected_completion = None;
+        self.completion_list = None;
     }
 
     fn scroll_up(&mut self) {
