@@ -12,7 +12,9 @@ pub enum EventKind {
     SaveFile,
     EnterKey,
     ShiftedKey(char),
-    RequestCompletion
+    Tab,
+    ShiftTab,
+    RequestCompletion,
 }
 
 pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
@@ -27,6 +29,8 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     KeyCode::Char('x') => sender.send(EventKind::RequestCompletion)?,
                     _ => {}
                 }
+            } else if key.code == KeyCode::BackTab {
+                sender.send(EventKind::ShiftTab)?;
             } else if key.modifiers.contains(KeyModifiers::SHIFT) {
                 if let KeyCode::Char(ch) = key.code {
                     sender.send(EventKind::ShiftedKey(ch))?;
@@ -37,6 +41,7 @@ pub fn handle_events(sender: Sender<EventKind>) -> Result<()> {
                     KeyCode::Char(ch) => sender.send(EventKind::KeyPressed(ch))?,
                     KeyCode::Backspace => sender.send(EventKind::Backspace)?,
                     KeyCode::Enter => sender.send(EventKind::EnterKey)?,
+                    KeyCode::Tab => sender.send(EventKind::Tab)?,
                     _ => {}
                 }
             }

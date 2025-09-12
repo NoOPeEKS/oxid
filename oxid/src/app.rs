@@ -3,6 +3,7 @@ use std::sync::mpsc::Receiver;
 
 use oxid_lsp::client::LspClient;
 use oxid_lsp::types::{CompletionItem, CompletionList, Diagnostic, Hover};
+use ratatui::widgets::TableState;
 
 use crate::buffer::Buffer;
 use crate::events::EventKind;
@@ -26,6 +27,8 @@ pub struct App {
     pub diagnostics: Option<Vec<Diagnostic>>,
     pub completion_list: Option<CompletionList>,
     pub selected_completion: Option<CompletionItem>,
+    pub completion_offset: usize,
+    pub table_state: TableState,
     pub hover: Option<Hover>,
     pub error: Option<String>,
     pub debug_mode: bool,
@@ -57,6 +60,8 @@ impl App {
             diagnostics: None,
             completion_list: None,
             selected_completion: None,
+            completion_offset: 0,
+            table_state: TableState::default().with_selected(0),
             hover: None,
             debug_mode: true,
             error: None,

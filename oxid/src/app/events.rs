@@ -23,6 +23,16 @@ impl App {
             EventKind::ShiftedKey(ch) => self.handle_shifted_key(ch, terminal),
             EventKind::Backspace => self.handle_backspace(),
             EventKind::EnterKey => self.handle_enter(terminal),
+            EventKind::Tab => {
+                if self.completion_list.is_some() {
+                    self.next_table_row();
+                }
+            }
+            EventKind::ShiftTab => {
+                if self.completion_list.is_some() {
+                    self.previous_table_row();
+                }
+            }
         }
         Ok(())
     }
@@ -224,7 +234,14 @@ impl App {
 
     fn handle_enter(&mut self, terminal: &mut DefaultTerminal) {
         if self.mode == Mode::Insert {
-            self.buffers[self.current_buf_index].enter_key();
+            if self.selected_completion.is_some() {
+                // TODO: handle inserting the completion.
+                self.selected_completion = None;
+                self.completion_list = None;
+                self.completion_offset = 0;
+            } else {
+                self.buffers[self.current_buf_index].enter_key();
+            }
         } else if self.mode == Mode::Command {
             self.apply_command(terminal);
         }

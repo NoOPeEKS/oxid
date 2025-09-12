@@ -222,6 +222,38 @@ pub enum CompletionItemKind {
     TypeParameter = 25,
 }
 
+impl From<CompletionItemKind> for String {
+    fn from(kind: CompletionItemKind) -> Self {
+        match kind {
+            CompletionItemKind::Text => "text".to_string(),
+            CompletionItemKind::Method => "method".to_string(),
+            CompletionItemKind::Function => "function".to_string(),
+            CompletionItemKind::Constructor => "constructor".to_string(),
+            CompletionItemKind::Field => "field".to_string(),
+            CompletionItemKind::Variable => "variable".to_string(),
+            CompletionItemKind::Class => "class".to_string(),
+            CompletionItemKind::Interface => "interface".to_string(),
+            CompletionItemKind::Module => "module".to_string(),
+            CompletionItemKind::Property => "property".to_string(),
+            CompletionItemKind::Unit => "unit".to_string(),
+            CompletionItemKind::Value => "value".to_string(),
+            CompletionItemKind::Enum => "enum".to_string(),
+            CompletionItemKind::Keyword => "keyword".to_string(),
+            CompletionItemKind::Snippet => "snippet".to_string(),
+            CompletionItemKind::Color => "color".to_string(),
+            CompletionItemKind::File => "file".to_string(),
+            CompletionItemKind::Reference => "reference".to_string(),
+            CompletionItemKind::Folder => "folder".to_string(),
+            CompletionItemKind::EnumMember => "enum member".to_string(),
+            CompletionItemKind::Constant => "constant".to_string(),
+            CompletionItemKind::Struct => "struct".to_string(),
+            CompletionItemKind::Event => "event".to_string(),
+            CompletionItemKind::Operator => "operator".to_string(),
+            CompletionItemKind::TypeParameter => "type parameter".to_string(),
+        }
+    }
+}
+
 impl From<i32> for CompletionItemKind {
     fn from(value: i32) -> Self {
         match value {
@@ -407,7 +439,7 @@ pub struct InsertReplaceRange {
     pub replace: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionItem {
     pub label: String,
@@ -449,7 +481,7 @@ pub struct CompletionItem {
     pub data: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TextEditKind {
     TextEdit(TextEdit),
@@ -464,7 +496,7 @@ pub struct InsertReplaceEdit {
     pub replace: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum CompletionItemDocumentationKind {
     Simple(String),
@@ -494,7 +526,7 @@ impl From<InsertTextFormat> for i32 {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionItemLabelDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -577,7 +609,7 @@ pub struct DocumentFilter {
 
 pub type DocumentSelector = Vec<DocumentFilter>;
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TextEdit {
     pub range: Range,
@@ -716,7 +748,7 @@ pub struct CodeDescription {
     pub href: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Command {
     pub title: String,
