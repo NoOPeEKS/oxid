@@ -81,6 +81,7 @@ impl App {
         self.completion_offset = 0;
         self.selected_completion = None;
         self.completion_list = None;
+        self.table_state.select(Some(0));
     }
 
     fn scroll_up(&mut self) {
