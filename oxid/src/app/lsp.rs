@@ -1,3 +1,7 @@
+use oxid_lsp::types::CompletionItem;
+
+use crate::buffer::types::BufferPosition;
+
 use super::App;
 
 impl App {
@@ -58,5 +62,22 @@ impl App {
                 self.completion_offset = i;
             }
         }
+    }
+
+    pub fn insert_completion(&mut self, completion: CompletionItem, buffer_pos: BufferPosition) {
+        // TODO: Insert the completion correctly, replacing the current writing word.
+        let idx_to_insert = self.buffers[self.current_buf_index]
+            .file_text
+            .line_to_char(buffer_pos.line)
+            + buffer_pos.character
+            - self.buffers[self.current_buf_index].numbar_space;
+
+        self.buffers[self.current_buf_index]
+            .file_text
+            .insert(idx_to_insert, &completion.label);
+
+        self.buffers[self.current_buf_index]
+            .current_position
+            .character += completion.label.len();
     }
 }

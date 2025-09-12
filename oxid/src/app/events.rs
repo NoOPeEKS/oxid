@@ -238,7 +238,8 @@ impl App {
     fn handle_enter(&mut self, terminal: &mut DefaultTerminal) {
         if self.mode == Mode::Insert {
             if self.selected_completion.is_some() {
-                // TODO: handle inserting the completion.
+                let buffer_pos = self.buffers[self.current_buf_index].get_viewport_cursor_pos();
+                self.insert_completion(self.selected_completion.clone().unwrap(), buffer_pos);
                 self.selected_completion = None;
                 self.completion_list = None;
                 self.completion_offset = 0;
