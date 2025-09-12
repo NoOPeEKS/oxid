@@ -65,19 +65,36 @@ impl App {
     }
 
     pub fn insert_completion(&mut self, completion: CompletionItem, buffer_pos: BufferPosition) {
-        // TODO: Insert the completion correctly, replacing the current writing word.
-        let idx_to_insert = self.buffers[self.current_buf_index]
-            .file_text
-            .line_to_char(buffer_pos.line)
-            + buffer_pos.character
-            - self.buffers[self.current_buf_index].numbar_space;
+        let buffer = &mut self.buffers[self.current_buf_index];
+        let line_start_idx = buffer.file_text.line_to_char(buffer_pos.line);
+        let mut start_idx = line_start_idx + buffer_pos.character - buffer.numbar_space;
 
-        self.buffers[self.current_buf_index]
-            .file_text
-            .insert(idx_to_insert, &completion.label);
+        // Scan backwards to find the start of the current identifier
+        while start_idx > line_start_idx {
+            let c = buffer.file_text.char(start_idx - 1);
+            if !c.is_alphanumeric() && c != '_' {
+                // Stop BEFORE a separator, but keep :: intact
+                if c == ':'
+                    && start_idx > line_start_idx + 1
+                    && buffer.file_text.char(start_idx - 2) == ':'
+                {
+                    // cursor is after ::, so we stop without including ::
+                    break;
+                }
+                break;
+            }
+            start_idx -= 1;
+        }
 
-        self.buffers[self.current_buf_index]
-            .current_position
-            .character += completion.label.len();
+        let end_idx = line_start_idx + buffer_pos.character - buffer.numbar_space;
+
+        let start_byte = buffer.file_text.char_to_byte(start_idx);
+        let end_byte = buffer.file_text.char_to_byte(end_idx);
+
+        buffer.file_text.remove(start_byte..end_byte);
+        buffer.file_text.insert(start_byte, &completion.label);
+
+        buffer.current_position.character =
+            start_idx + completion.label.chars().count() - line_start_idx + buffer.numbar_space;
     }
 }
