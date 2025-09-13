@@ -39,13 +39,13 @@ impl App {
 
     fn handle_completion(&mut self) -> anyhow::Result<()> {
         if self.mode == Mode::Insert {
-            if let Some(file_path) = &self.buffers[self.current_buf_index].file_path {
+            if let Some(file_path) = self.buffers[self.current_buf_index].file_path.clone() {
                 let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
 
-                self.lsp_client.did_change(file_path, &file_contents)?;
+                self.lsp_client.did_change(&file_path, &file_contents)?;
 
                 self.completion_list = match self.lsp_client.request_completion(
-                    file_path,
+                    &file_path,
                     self.buffers[self.current_buf_index].current_position.line,
                     self.buffers[self.current_buf_index]
                         .current_position
@@ -60,6 +60,8 @@ impl App {
                 if self.completion_list.is_some() {
                     self.choose_completion(0);
                     self.table_state.select(Some(0));
+                    let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
+                    self.lsp_client.did_change(&file_path, &file_contents)?;
                 }
             }
         }
@@ -214,7 +216,7 @@ impl App {
                     self.set_mode(terminal, Mode::Insert);
                 }
                 'K' => {
-                    // TODO: Handle hover here.
+                    self.hover();
                 }
                 _ => {}
             }
@@ -242,12 +244,18 @@ impl App {
 
     fn handle_enter(&mut self, terminal: &mut DefaultTerminal) {
         if self.mode == Mode::Insert {
-            if self.selected_completion.is_some() {
+            if let Some(completion_item) = &self.selected_completion {
                 let buffer_pos = self.buffers[self.current_buf_index].get_viewport_cursor_pos();
-                self.insert_completion(self.selected_completion.clone().unwrap(), buffer_pos);
+                self.insert_completion(completion_item.clone(), buffer_pos);
                 self.selected_completion = None;
                 self.completion_list = None;
                 self.completion_offset = 0;
+                let fp = self.buffers[self.current_buf_index]
+                    .file_path
+                    .clone()
+                    .unwrap_or(String::from(""));
+                let contents = self.buffers[self.current_buf_index].file_text.to_string();
+                _ = self.lsp_client.did_change(&fp, &contents);
             } else {
                 self.buffers[self.current_buf_index].enter_key();
             }

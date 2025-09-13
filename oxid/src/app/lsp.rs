@@ -1,10 +1,35 @@
-use oxid_lsp::types::CompletionItem;
+use oxid_lsp::types::{CompletionItem, Position};
 
 use crate::buffer::types::BufferPosition;
 
 use super::App;
 
 impl App {
+    pub fn hover(&mut self) {
+        if let Some(curr_file_path) = &self.buffers[self.current_buf_index].file_path {
+            let mut pos = self.buffers[self.current_buf_index]
+                .current_position
+                .clone();
+
+            pos.character = pos
+                .character
+                .saturating_sub(self.buffers[self.current_buf_index].numbar_space);
+
+            match self.lsp_client.hover(
+                curr_file_path,
+                Position {
+                    line: pos.line,
+                    character: pos.character,
+                },
+            ) {
+                Ok(hover) => self.hover = Some(hover),
+                Err(_) => self.hover = None,
+            }
+        } else {
+            self.hover = None;
+        }
+    }
+
     pub fn choose_completion(&mut self, comp_list_idx: usize) {
         if let Some(completion_list) = &self.completion_list {
             if let Some(comp_item) = completion_list.items.get(comp_list_idx) {

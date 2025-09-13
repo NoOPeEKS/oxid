@@ -157,11 +157,8 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // let mode = app.mode.to_string();
         // let command = app.command.clone();
         // let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
-        let sel_cmp = &app.selected_completion;
-        let err = &app.error;
-        let mut dbg_str = format!("SELECTED COMPLETION: {sel_cmp:?}\n");
-        dbg_str.push_str(&format!("ERROR: {err:?}\n"));
-        dbg_str.push_str(&format!("TABLE INDEX: {:?}", app.table_state.selected()));
+        let hover = app.hover.clone();
+        let dbg_str = format!("HOVER VALUE: {hover:#?}");
 
         let popup = DebugPopup::default()
             .content(&dbg_str)
