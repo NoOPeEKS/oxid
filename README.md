@@ -64,6 +64,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `i` | Enter insert mode |
 | `v` | Enter visual mode |
 | `p` | Paste previously yanked text |
+| `[` | Mute/Unmute diagnostics |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
