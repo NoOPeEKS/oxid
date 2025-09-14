@@ -28,8 +28,18 @@ impl Buffer {
         self.current_position.character = self.numbar_space;
     }
     pub fn move_cursor_end_line(&mut self) {
-        self.current_position.character =
-            (self.file_text.line(self.current_position.line).len_chars() - 1) + self.numbar_space;
+        // There is a bug that if its on last line we need to add +1 or else it moves
+        // the cursor to the second last char.
+        if self.current_position.line != self.file_text.len_lines() - 1 {
+            self.current_position.character =
+                (self.file_text.line(self.current_position.line).len_chars() - 1)
+                    + self.numbar_space;
+        } else {
+            self.current_position.character =
+                (self.file_text.line(self.current_position.line).len_chars() - 1)
+                    + self.numbar_space
+                    + 1;
+        }
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
