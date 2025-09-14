@@ -150,7 +150,8 @@ As of now, the editor will either open an existing file or create a new one. It 
 - [ ] **Editor UI Integration**
   - [x] Auto-completion
   - [x] Hovering
-  - [ ] Diagnostics
+  - [x] Diagnostics when cursor on top
+  - [ ] Diagnostic appeareance with underlining and colors
 
 ## 🤝 Contributing
 
