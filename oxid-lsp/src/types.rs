@@ -178,7 +178,7 @@ pub struct CompletionClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion_item: Option<CompletionItemCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub completion_item_kind:Option<CompletionItemKindCapability>,
+    pub completion_item_kind: Option<CompletionItemKindCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_support: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -220,6 +220,38 @@ pub enum CompletionItemKind {
     Event = 23,
     Operator = 24,
     TypeParameter = 25,
+}
+
+impl From<CompletionItemKind> for String {
+    fn from(kind: CompletionItemKind) -> Self {
+        match kind {
+            CompletionItemKind::Text => "text".to_string(),
+            CompletionItemKind::Method => "method".to_string(),
+            CompletionItemKind::Function => "function".to_string(),
+            CompletionItemKind::Constructor => "constructor".to_string(),
+            CompletionItemKind::Field => "field".to_string(),
+            CompletionItemKind::Variable => "variable".to_string(),
+            CompletionItemKind::Class => "class".to_string(),
+            CompletionItemKind::Interface => "interface".to_string(),
+            CompletionItemKind::Module => "module".to_string(),
+            CompletionItemKind::Property => "property".to_string(),
+            CompletionItemKind::Unit => "unit".to_string(),
+            CompletionItemKind::Value => "value".to_string(),
+            CompletionItemKind::Enum => "enum".to_string(),
+            CompletionItemKind::Keyword => "keyword".to_string(),
+            CompletionItemKind::Snippet => "snippet".to_string(),
+            CompletionItemKind::Color => "color".to_string(),
+            CompletionItemKind::File => "file".to_string(),
+            CompletionItemKind::Reference => "reference".to_string(),
+            CompletionItemKind::Folder => "folder".to_string(),
+            CompletionItemKind::EnumMember => "enum member".to_string(),
+            CompletionItemKind::Constant => "constant".to_string(),
+            CompletionItemKind::Struct => "struct".to_string(),
+            CompletionItemKind::Event => "event".to_string(),
+            CompletionItemKind::Operator => "operator".to_string(),
+            CompletionItemKind::TypeParameter => "type parameter".to_string(),
+        }
+    }
 }
 
 impl From<i32> for CompletionItemKind {
@@ -301,7 +333,7 @@ pub struct ResolveSupport {
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct TagSupport {
-    pub value_set: Vec<CompletionItemTagKind>
+    pub value_set: Vec<CompletionItemTagKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -331,7 +363,6 @@ pub struct CompletionListCapability {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub item_defaults: Option<Vec<String>>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(from = "i32", into = "i32")]
@@ -365,6 +396,24 @@ pub struct CompletionList {
     pub item_defaults: Option<ItemDefaults>,
 }
 
+impl CompletionList {
+    pub fn iter(&self) -> std::slice::Iter<'_, CompletionItem> {
+        self.items.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, CompletionItem> {
+        self.items.iter_mut()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemDefaults {
@@ -389,7 +438,7 @@ pub struct InsertReplaceRange {
     pub replace: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionItem {
     pub label: String,
@@ -431,11 +480,11 @@ pub struct CompletionItem {
     pub data: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TextEditKind {
     TextEdit(TextEdit),
-    InsertReplaceEdit(InsertReplaceEdit)
+    InsertReplaceEdit(InsertReplaceEdit),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
@@ -446,7 +495,7 @@ pub struct InsertReplaceEdit {
     pub replace: Range,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum CompletionItemDocumentationKind {
     Simple(String),
@@ -476,13 +525,13 @@ impl From<InsertTextFormat> for i32 {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionItemLabelDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -516,6 +565,24 @@ pub enum PositionEncodingKind {
 pub struct Range {
     pub start: Position,
     pub end: Position,
+}
+
+impl Range {
+    pub fn is_inside(&self, line: usize, character: usize) -> bool {
+        if line < self.start.line || line > self.end.line {
+            return false;
+        }
+
+        if line == self.start.line && character < self.start.character {
+            return false;
+        }
+
+        if line == self.end.line && character > self.end.character {
+            return false;
+        }
+
+        true
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -559,7 +626,7 @@ pub struct DocumentFilter {
 
 pub type DocumentSelector = Vec<DocumentFilter>;
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TextEdit {
     pub range: Range,
@@ -634,7 +701,7 @@ pub struct Diagnostic {
 #[serde(untagged)]
 pub enum DiagnosticCode {
     Integer(i64),
-    String(String)
+    String(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -698,7 +765,7 @@ pub struct CodeDescription {
     pub href: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Command {
     pub title: String,
@@ -1192,7 +1259,7 @@ pub struct ServerCapabilities {
 #[serde(untagged)]
 pub enum TextDocumentSyncCapability {
     Options(TextDocumentSyncOptions),
-    Kind(TextDocumentSyncKind)
+    Kind(TextDocumentSyncKind),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -1214,14 +1281,14 @@ pub struct TextDocumentSyncOptions {
 #[serde(untagged)]
 pub enum TextDocumentSyncSaveOptions {
     Simple(bool),
-    Options(SaveOptions)
+    Options(SaveOptions),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub include_text: Option<bool>
+    pub include_text: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -1609,7 +1676,6 @@ pub struct InlineValueOptions {
     pub work_done_progress: Option<bool>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct InlayHintOptions {
@@ -1623,7 +1689,7 @@ pub struct InlayHintOptions {
 #[serde(untagged)]
 pub enum InlayHintOptionsKind {
     Bool(bool),
-    Options(InlayHintOptions)
+    Options(InlayHintOptions),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1784,13 +1850,13 @@ pub struct DidChangeTextDocumentParams {
 #[serde(untagged)]
 pub enum TextDocumentContentChangeEvent {
     Full(FullTextDocumentContentChangeEvent),
-    Incremental(IncrementalTextDocumentContentChangeEvent)
+    Incremental(IncrementalTextDocumentContentChangeEvent),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FullTextDocumentContentChangeEvent {
-    pub text: String
+    pub text: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder, Clone)]

@@ -1,14 +1,18 @@
-use super::debug::DebugPopup;
-use crate::app::{App, Mode};
-use crate::buffer::STATUSBAR_SPACE;
-use crate::ui::command::CommandPopup;
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Position},
-    prelude::Stylize,
+    layout::{Constraint, Direction, Layout, Position},
+    prelude::{Alignment, Stylize},
     style::{Color, Style, palette::tailwind::PURPLE},
     text::{Line, Span},
     widgets::{Block, Paragraph, Wrap},
+};
+
+use crate::buffer::STATUSBAR_SPACE;
+use crate::ui::{command::CommandPopup, completion::render_completion_table, debug::DebugPopup};
+use crate::{
+    app::{App, modes::Mode},
+    ui::diagnostics::render_diagnostics,
+    ui::hover::render_hover_area,
 };
 
 pub fn ui(frame: &mut Frame, app: &App) {
@@ -82,8 +86,8 @@ pub fn ui(frame: &mut Frame, app: &App) {
                     (&sel.end, &sel.start)
                 };
 
-                // Is in selection if line is bigger than start line or same line but char bigger
-                // than start char, and if line is less than or equal to line end and character is
+                // Is in selection if the line is bigger than start line or same line but char
+                // bigger than start char, and if the line is less than or equal to line end and character is
                 // less than the end character.
                 (abs_line > start.line
                     || (abs_line == start.line && char_idx >= start.character - numbar_space))
@@ -118,6 +122,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // Render editor content first
         frame.render_widget(file_text, editor_area_chunks[0]);
 
+        // TODO: If the zoom is too much, it doesn't render the command popup correctly.
         // Then render command popup on top
         let editor_subareas = Layout::default()
             .direction(Direction::Vertical)
@@ -153,9 +158,12 @@ pub fn ui(frame: &mut Frame, app: &App) {
             .split(editor_area_chunks[0]);
         frame.render_widget(file_text, editor_subareas[0]);
 
-        let mode = app.mode.to_string();
-        let command = app.command.clone();
-        let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
+        // let mode = app.mode.to_string();
+        // let command = app.command.clone();
+        // let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
+        let diags = app.diagnostics.clone();
+        eprintln!("DIAGS: {diags:#?}");
+        let dbg_str = format!("Nothing");
 
         let popup = DebugPopup::default()
             .content(&dbg_str)
@@ -168,6 +176,11 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // Normal mode rendering
         frame.render_widget(file_text, editor_area_chunks[0]);
     }
+
+    // Render completion table if available (this should be rendered last to appear on top)
+    render_completion_table(frame, app, editor_area_chunks[0]);
+    render_hover_area(frame, app, editor_area_chunks[0]);
+    render_diagnostics(frame, app, editor_area_chunks[0]);
 
     let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
 

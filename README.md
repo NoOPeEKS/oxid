@@ -64,6 +64,7 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `i` | Enter insert mode |
 | `v` | Enter visual mode |
 | `p` | Paste previously yanked text |
+| `[` | Mute/Unmute diagnostics |
 | `Ctrl+u` | Scroll up |
 | `Ctrl+d` | Scroll down |
 | `Ctrl+c` | Quit editor |
@@ -148,9 +149,10 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [x] Hovering
   - [x] Diagnostics
 - [ ] **Editor UI Integration**
-  - [ ] Auto-completion
-  - [ ] Hovering
-  - [ ] Diagnostics
+  - [x] Auto-completion
+  - [x] Hovering
+  - [x] Diagnostics when cursor on top
+  - [ ] Diagnostic appeareance with underlining and colors
 
 ## 🤝 Contributing
 
