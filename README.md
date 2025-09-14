@@ -148,8 +148,8 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [x] Hovering
   - [x] Diagnostics
 - [ ] **Editor UI Integration**
-  - [ ] Auto-completion
-  - [ ] Hovering
+  - [x] Auto-completion
+  - [x] Hovering
   - [ ] Diagnostics
 
 ## 🤝 Contributing
