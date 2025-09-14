@@ -63,7 +63,7 @@ impl App {
             completion_offset: 0,
             table_state: TableState::default().with_selected(0),
             hover: None,
-            debug_mode: true,
+            debug_mode: false,
             error: None,
         }
     }

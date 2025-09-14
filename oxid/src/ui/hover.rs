@@ -2,8 +2,9 @@ use oxid_lsp::types::MarkupKind;
 use ratatui::{
     Frame,
     layout::Rect,
+    style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
 };
 
 use crate::app::App;
@@ -37,8 +38,14 @@ pub fn render_hover_area(frame: &mut Frame, app: &App, editor_area: Rect) {
                 };
 
                 let pg_text: Vec<Line> = hover.contents.value.lines().map(Line::from).collect();
-                let block = Block::default().borders(Borders::ALL);
-                let paragraph = Paragraph::new(pg_text).block(block);
+                let block = Block::default()
+                    .borders(Borders::ALL)
+                    .style(Style::default().bg(Color::Rgb(40, 30, 51)))
+                    .border_style(Color::Rgb(164, 160, 232));
+                let paragraph = Paragraph::new(pg_text)
+                    .block(block)
+                    .style(Color::Rgb(164, 160, 232));
+                frame.render_widget(Clear, popup_area);
                 frame.render_widget(paragraph, popup_area);
             }
             MarkupKind::Markdown => {
@@ -69,8 +76,14 @@ pub fn render_hover_area(frame: &mut Frame, app: &App, editor_area: Rect) {
                 };
 
                 let pg_text: Vec<Line> = hover.contents.value.lines().map(Line::from).collect();
-                let block = Block::default().borders(Borders::ALL);
-                let paragraph = Paragraph::new(pg_text).block(block);
+                let block = Block::default()
+                    .borders(Borders::ALL)
+                    .style(Style::default().bg(Color::Rgb(40, 30, 51)))
+                    .border_style(Color::Rgb(164, 160, 232));
+                let paragraph = Paragraph::new(pg_text)
+                    .block(block)
+                    .style(Color::Rgb(164, 160, 232));
+                frame.render_widget(Clear, popup_area);
                 frame.render_widget(paragraph, popup_area);
             }
         }

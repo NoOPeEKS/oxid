@@ -31,6 +31,9 @@ impl App {
         match mode {
             Mode::Normal => {
                 self.mode = Mode::Normal;
+                self.completion_list = None;
+                self.hover = None;
+                self.selected_completion = None;
                 execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap();
             }
             Mode::Insert => {
