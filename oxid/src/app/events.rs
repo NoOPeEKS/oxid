@@ -212,6 +212,12 @@ impl App {
             }
         } else if self.mode == Mode::Insert {
             self.buffers[self.current_buf_index].insert_char(ch);
+            if let Some(fp) = &self.buffers[self.current_buf_index].file_path {
+                _ = self.lsp_client.did_change(
+                    fp,
+                    &self.buffers[self.current_buf_index].file_text.to_string(),
+                );
+            }
         }
     }
 
