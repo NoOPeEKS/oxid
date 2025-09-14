@@ -69,8 +69,16 @@ impl App {
     }
 
     fn handle_save_file(&mut self, terminal: &mut DefaultTerminal) -> anyhow::Result<()> {
-        self.buffers[self.current_buf_index].save_file()?;
-        self.set_mode(terminal, Mode::Normal);
+        if self.buffers[self.current_buf_index].save_file().is_ok() {
+            let fp = self.buffers[self.current_buf_index]
+                .file_path
+                .clone()
+                .expect("Filepath should be Some(fp)"); // As we're inside Ok, shouldn't fail.
+            let fc = self.buffers[self.current_buf_index].file_text.to_string();
+            self.lsp_client.did_save(&fp, &fc)?;
+            self.set_mode(terminal, Mode::Normal);
+            self.get_diagnostics();
+        }
         Ok(())
     }
 
@@ -109,6 +117,9 @@ impl App {
         if self.mode == Mode::Normal || self.mode == Mode::Visual {
             let vis = self.mode == Mode::Visual;
             match ch {
+                '[' => {
+                    self.show_diagnostics = !self.show_diagnostics;
+                }
                 ':' => self.set_mode(terminal, Mode::Command),
                 'v' => self.set_mode(terminal, Mode::Visual),
                 'h' => {

@@ -5,6 +5,18 @@ use crate::buffer::types::BufferPosition;
 use super::App;
 
 impl App {
+    pub fn get_diagnostics(&mut self) {
+        if let Some(filepath) = &self.buffers[self.current_buf_index].file_path {
+            match self.lsp_client.get_file_diagnostic(filepath) {
+                Ok(diag_opt) => match diag_opt {
+                    Some(diag_vec) => self.diagnostics = Some(diag_vec),
+                    None => self.diagnostics = None,
+                },
+                Err(_) => self.diagnostics = None,
+            }
+        }
+    }
+
     pub fn hover(&mut self) {
         if let Some(curr_file_path) = &self.buffers[self.current_buf_index].file_path {
             let mut pos = self.buffers[self.current_buf_index]

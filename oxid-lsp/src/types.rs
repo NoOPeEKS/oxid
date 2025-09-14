@@ -178,7 +178,7 @@ pub struct CompletionClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion_item: Option<CompletionItemCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub completion_item_kind:Option<CompletionItemKindCapability>,
+    pub completion_item_kind: Option<CompletionItemKindCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_support: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -333,7 +333,7 @@ pub struct ResolveSupport {
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct TagSupport {
-    pub value_set: Vec<CompletionItemTagKind>
+    pub value_set: Vec<CompletionItemTagKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -363,7 +363,6 @@ pub struct CompletionListCapability {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub item_defaults: Option<Vec<String>>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(from = "i32", into = "i32")]
@@ -485,7 +484,7 @@ pub struct CompletionItem {
 #[serde(untagged)]
 pub enum TextEditKind {
     TextEdit(TextEdit),
-    InsertReplaceEdit(InsertReplaceEdit)
+    InsertReplaceEdit(InsertReplaceEdit),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
@@ -532,7 +531,7 @@ pub struct CompletionItemLabelDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -566,6 +565,24 @@ pub enum PositionEncodingKind {
 pub struct Range {
     pub start: Position,
     pub end: Position,
+}
+
+impl Range {
+    pub fn is_inside(&self, line: usize, character: usize) -> bool {
+        if line < self.start.line || line > self.end.line {
+            return false;
+        }
+
+        if line == self.start.line && character < self.start.character {
+            return false;
+        }
+
+        if line == self.end.line && character > self.end.character {
+            return false;
+        }
+
+        true
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -684,7 +701,7 @@ pub struct Diagnostic {
 #[serde(untagged)]
 pub enum DiagnosticCode {
     Integer(i64),
-    String(String)
+    String(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -1242,7 +1259,7 @@ pub struct ServerCapabilities {
 #[serde(untagged)]
 pub enum TextDocumentSyncCapability {
     Options(TextDocumentSyncOptions),
-    Kind(TextDocumentSyncKind)
+    Kind(TextDocumentSyncKind),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -1264,14 +1281,14 @@ pub struct TextDocumentSyncOptions {
 #[serde(untagged)]
 pub enum TextDocumentSyncSaveOptions {
     Simple(bool),
-    Options(SaveOptions)
+    Options(SaveOptions),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub include_text: Option<bool>
+    pub include_text: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -1659,7 +1676,6 @@ pub struct InlineValueOptions {
     pub work_done_progress: Option<bool>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct InlayHintOptions {
@@ -1673,7 +1689,7 @@ pub struct InlayHintOptions {
 #[serde(untagged)]
 pub enum InlayHintOptionsKind {
     Bool(bool),
-    Options(InlayHintOptions)
+    Options(InlayHintOptions),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1834,13 +1850,13 @@ pub struct DidChangeTextDocumentParams {
 #[serde(untagged)]
 pub enum TextDocumentContentChangeEvent {
     Full(FullTextDocumentContentChangeEvent),
-    Incremental(IncrementalTextDocumentContentChangeEvent)
+    Incremental(IncrementalTextDocumentContentChangeEvent),
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FullTextDocumentContentChangeEvent {
-    pub text: String
+    pub text: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder, Clone)]

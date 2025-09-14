@@ -11,6 +11,7 @@ use crate::buffer::STATUSBAR_SPACE;
 use crate::ui::{command::CommandPopup, completion::render_completion_table, debug::DebugPopup};
 use crate::{
     app::{App, modes::Mode},
+    ui::diagnostics::render_diagnostics,
     ui::hover::render_hover_area,
 };
 
@@ -160,8 +161,9 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // let mode = app.mode.to_string();
         // let command = app.command.clone();
         // let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
-        let hover = app.hover.clone();
-        let dbg_str = format!("HOVER VALUE: {hover:#?}");
+        let diags = app.diagnostics.clone();
+        eprintln!("DIAGS: {diags:#?}");
+        let dbg_str = format!("Nothing");
 
         let popup = DebugPopup::default()
             .content(&dbg_str)
@@ -178,6 +180,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     // Render completion table if available (this should be rendered last to appear on top)
     render_completion_table(frame, app, editor_area_chunks[0]);
     render_hover_area(frame, app, editor_area_chunks[0]);
+    render_diagnostics(frame, app, editor_area_chunks[0]);
 
     let status_bar_area_bg = Block::default().style(Style::default().bg(Color::Rgb(40, 30, 51)));
 
