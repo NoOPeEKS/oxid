@@ -65,6 +65,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
     let start_line = app.buffers[app.current_buf_index].vertical_scroll;
     let numbar_space = app.buffers[app.current_buf_index].numbar_space;
 
+    let diagnostics = app.diagnostics.clone().unwrap_or_default();
     for (i, visible_line) in visible_lines.iter().enumerate() {
         let line_content =
             app.buffers[app.current_buf_index].get_visible_line_content(visible_line.to_owned());
@@ -97,11 +98,20 @@ pub fn ui(frame: &mut Frame, app: &App) {
                 false
             };
 
-            let styled_char = if in_selection {
-                Span::styled(ch.to_string(), Style::default().bg(PURPLE.c900))
-            } else {
-                Span::raw(ch.to_string())
-            };
+            let in_diagnostic = diagnostics
+                .iter()
+                .any(|diag| diag.range.is_inside(abs_line, char_idx + numbar_space));
+
+            let mut style = Style::default();
+
+            if in_selection {
+                style = style.bg(PURPLE.c900);
+            }
+
+            if in_diagnostic {
+                style = style.underlined();
+            }
+            let styled_char = Span::styled(ch.to_string(), style);
             spans.push(styled_char);
         }
 
