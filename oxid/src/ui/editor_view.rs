@@ -132,14 +132,12 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // Render editor content first
         frame.render_widget(file_text, editor_area_chunks[0]);
 
-        // TODO: If the zoom is too much, it doesn't render the command popup correctly.
         // Then render command popup on top
         let editor_subareas = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(6),
-                Constraint::Percentage(6),
-                Constraint::Percentage(6),
+                Constraint::Length(3),
+                Constraint::Length(3),
                 Constraint::Fill(1),
             ])
             .split(editor_area_chunks[0]);
