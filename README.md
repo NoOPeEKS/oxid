@@ -21,6 +21,12 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 - **Status Bar**: Shows current mode and cursor position
 - **Responsive Layout**: Adapts to terminal size
 
+### 🛠️ **Integrated LSP support**
+- **Multiple LSP Configuration**: Configure `~/.config/oxid/oxid.toml` for multiple LSP servers based on file types.
+- **Completions**: Press <C-x> to list available completions.
+- **Hovering**: Press <S-k> to hover over a piece of text.
+- **Diagnostics**: Update file diagnostics on save.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -44,7 +50,7 @@ cargo build --release
 ```bash
 cargo run -- /path/to/file
 ```
-As of now, the editor will either open an existing file or create a new one. It does not currently support multiple buffers nor opening directories.
+As of now, the editor will either open an existing file or create a new one. It does not currently support opening directories.
 
 ## 🎮 Key Bindings
 
@@ -109,6 +115,8 @@ As of now, the editor will either open an existing file or create a new one. It 
 | `:bn` | Move to next buffer |
 | `:bp` | Move to previous buffer |
 | `:<line_number>` | Move to specified line on current buffer |
+| `:LspStart <lsp_command>` | Start a new LSP server with the provided command |
+| `:LspStop` | Stop the current LSP server |
 
 ## 📋 Planned Features
 
@@ -119,6 +127,8 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [ ] System clipboard integration
 - [ ] **Advanced Editing**
   - [ ] Undo/Redo functionality
+  - [ ] Advanced vim motions (dd, dap, ...)
+  - [ ] Visual V-Line mode
 
 ### 📁 **File Management**
 - [ ] **File Operations**
@@ -144,15 +154,16 @@ As of now, the editor will either open an existing file or create a new one. It 
   - [ ] Search
 
 ### 🧩 **Language Server Protocol**
-- [ ] **LSP Client**
+- [x] **LSP Client**
   - [x] Autocompletion
   - [x] Hovering
   - [x] Diagnostics
-- [ ] **Editor UI Integration**
+- [ ] **Editor Integration**
   - [x] Auto-completion
   - [x] Hovering
   - [x] Diagnostics when cursor on top
-  - [ ] Diagnostic appeareance with underlining and colors
+  - [x] Diagnostic appeareance with underlining and colors
+  - [ ] Multiple LSP clients for multiple servers and buffers
 
 ## 🤝 Contributing
 
