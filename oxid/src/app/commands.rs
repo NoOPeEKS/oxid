@@ -58,7 +58,9 @@ impl App {
 
     fn quit_current_file(&mut self, terminal: &mut DefaultTerminal) {
         if self.buffers.len() == 1 {
-            _ = self.lsp_client.shutdown();
+            if let Some(lsp) = self.lsp_client.as_mut() {
+                _ = lsp.shutdown();
+            }
             self.quitting = true;
         }
         // -2 because we are gonna remove one more right now, to avoid an extra assign.
@@ -76,7 +78,9 @@ impl App {
     fn quit_all(&mut self, terminal: &mut DefaultTerminal) {
         self.set_mode(terminal, Mode::Normal);
         self.command = None;
-        _ = self.lsp_client.shutdown();
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+        }
         self.quitting = true;
     }
     fn save_quit_all(&mut self, terminal: &mut DefaultTerminal) {
@@ -86,7 +90,9 @@ impl App {
             // TODO: Handle this better
             buf.save_file().expect("Could not save all files.");
         });
-        _ = self.lsp_client.shutdown();
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+        }
         self.quitting = true;
     }
     fn next_buffer(&mut self, terminal: &mut DefaultTerminal) {

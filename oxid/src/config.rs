@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Config {
-    lsp: Vec<LspConfig>,
+    pub lsp: Vec<LspConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct LspConfig {
-    filetype: String,
-    command: String,
+    pub filetype: String,
+    pub command: String,
 }
 
 pub fn read_config_file() -> anyhow::Result<Config> {
