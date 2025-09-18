@@ -23,8 +23,8 @@ A simple, vim-inspired terminal text editor built with Rust. This is a personal 
 
 ### 🛠️ **Integrated LSP support**
 - **Multiple LSP Configuration**: Configure `~/.config/oxid/oxid.toml` for multiple LSP servers based on file types.
-- **Completions**: Press <C-x> to list available completions.
-- **Hovering**: Press <S-k> to hover over a piece of text.
+- **Completions**: Press `<C-x>` to list available completions.
+- **Hovering**: Press `<S-k>` to hover over a piece of text.
 - **Diagnostics**: Update file diagnostics on save.
 
 ## 🚀 Quick Start
