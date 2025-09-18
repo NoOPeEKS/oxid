@@ -38,13 +38,15 @@ impl App {
     }
 
     fn handle_completion(&mut self) -> anyhow::Result<()> {
-        if self.mode == Mode::Insert {
-            if let Some(file_path) = self.buffers[self.current_buf_index].file_path.clone() {
-                let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
+        if self.mode == Mode::Insert
+            && let Some(file_path) = self.buffers[self.current_buf_index].file_path.clone()
+        {
+            let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
 
-                self.lsp_client.did_change(&file_path, &file_contents)?;
+            if let Some(lsp) = self.lsp_client.as_mut() {
+                lsp.did_change(&file_path, &file_contents)?;
 
-                self.completion_list = match self.lsp_client.request_completion(
+                self.completion_list = match lsp.request_completion(
                     &file_path,
                     self.buffers[self.current_buf_index].current_position.line,
                     self.buffers[self.current_buf_index]
@@ -57,11 +59,13 @@ impl App {
                         None
                     }
                 };
-                if self.completion_list.is_some() {
-                    self.choose_completion(0);
-                    self.table_state.select(Some(0));
-                    let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
-                    self.lsp_client.did_change(&file_path, &file_contents)?;
+            }
+            if self.completion_list.is_some() {
+                self.choose_completion(0);
+                self.table_state.select(Some(0));
+                let file_contents = self.buffers[self.current_buf_index].file_text.to_string();
+                if let Some(lsp) = self.lsp_client.as_mut() {
+                    lsp.did_change(&file_path, &file_contents)?;
                 }
             }
         }
@@ -75,15 +79,19 @@ impl App {
                 .clone()
                 .expect("Filepath should be Some(fp)"); // As we're inside Ok, shouldn't fail.
             let fc = self.buffers[self.current_buf_index].file_text.to_string();
-            self.lsp_client.did_save(&fp, &fc)?;
+            if let Some(lsp) = self.lsp_client.as_mut() {
+                lsp.did_save(&fp, &fc)?;
+                self.get_diagnostics();
+            }
             self.set_mode(terminal, Mode::Normal);
-            self.get_diagnostics();
         }
         Ok(())
     }
 
     fn handle_quit(&mut self) -> anyhow::Result<()> {
-        _ = self.lsp_client.shutdown();
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+        }
         self.quitting = true;
         Ok(())
     }
@@ -188,32 +196,32 @@ impl App {
                     }
                 }
                 'y' => {
-                    if vis {
-                        if let Some(selection) =
+                    if vis
+                        && let Some(selection) =
                             &self.buffers[self.current_buf_index].selected_string
-                        {
-                            self.registers
-                                .insert(String::from("default"), selection.to_string());
-                            self.set_mode(terminal, Mode::Normal);
-                            self.buffers[self.current_buf_index].selection = None;
-                        }
+                    {
+                        self.registers
+                            .insert(String::from("default"), selection.to_string());
+                        self.set_mode(terminal, Mode::Normal);
+                        self.buffers[self.current_buf_index].selection = None;
                     }
                 }
                 'p' => {
-                    if !vis {
-                        if let Some(paste_string) = self.registers.get("default") {
-                            if !paste_string.is_empty() {
-                                self.buffers[self.current_buf_index].paste(paste_string.to_owned());
-                            }
-                        }
+                    if !vis
+                        && let Some(paste_string) = self.registers.get("default")
+                        && !paste_string.is_empty()
+                    {
+                        self.buffers[self.current_buf_index].paste(paste_string.to_owned());
                     }
                 }
                 _ => {}
             }
         } else if self.mode == Mode::Insert {
             self.buffers[self.current_buf_index].insert_char(ch);
-            if let Some(fp) = &self.buffers[self.current_buf_index].file_path {
-                _ = self.lsp_client.did_change(
+            if let Some(fp) = &self.buffers[self.current_buf_index].file_path
+                && let Some(lsp) = self.lsp_client.as_mut()
+            {
+                _ = lsp.did_change(
                     fp,
                     &self.buffers[self.current_buf_index].file_text.to_string(),
                 );
@@ -252,10 +260,10 @@ impl App {
         if self.mode == Mode::Insert {
             self.buffers[self.current_buf_index].remove_char();
         }
-        if self.mode == Mode::Command {
-            if let Some(command) = &mut self.command {
-                command.pop();
-            }
+        if self.mode == Mode::Command
+            && let Some(command) = &mut self.command
+        {
+            command.pop();
         }
     }
 
@@ -267,12 +275,15 @@ impl App {
                 self.selected_completion = None;
                 self.completion_list = None;
                 self.completion_offset = 0;
-                let fp = self.buffers[self.current_buf_index]
-                    .file_path
-                    .clone()
-                    .unwrap_or(String::from(""));
-                let contents = self.buffers[self.current_buf_index].file_text.to_string();
-                _ = self.lsp_client.did_change(&fp, &contents);
+
+                if let Some(lsp) = self.lsp_client.as_mut() {
+                    let fp = self.buffers[self.current_buf_index]
+                        .file_path
+                        .clone()
+                        .unwrap_or_else(|| String::from(""));
+                    let contents = self.buffers[self.current_buf_index].file_text.to_string();
+                    let _ = lsp.did_change(&fp, &contents);
+                }
             } else {
                 self.buffers[self.current_buf_index].enter_key();
             }

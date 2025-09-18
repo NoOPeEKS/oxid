@@ -35,7 +35,40 @@ impl App {
             Command::PreviousBuffer => self.previous_buffer(terminal),
             Command::OpenFile(path) => self.open_file(path, terminal),
             Command::GoToLine(line) => self.go_to_line(line, terminal),
+            Command::StartLsp(lsp_command) => self.start_lsp(&lsp_command, terminal),
+            Command::StopLsp => self.stop_lsp(terminal),
         }
+    }
+
+    fn start_lsp(&mut self, command: &str, terminal: &mut DefaultTerminal) {
+        if self.lsp_client.is_none() {
+            let client = oxid_lsp::client::start_lsp(command).ok();
+            self.lsp_client = client;
+
+            // We can unwrap because we're garanteed to be Some(LspClient) here.
+            if self.lsp_client.is_some() && self.lsp_client.as_mut().unwrap().initialize().is_ok() {
+                for buffer in &self.buffers {
+                    if let Some(buffer_path) = &buffer.file_path {
+                        _ = self
+                            .lsp_client
+                            .as_mut()
+                            .unwrap()
+                            .did_open(buffer_path, &buffer.file_text.to_string());
+                    }
+                }
+            }
+        }
+        self.set_mode(terminal, Mode::Normal);
+        self.command = None;
+    }
+
+    fn stop_lsp(&mut self, terminal: &mut DefaultTerminal) {
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+            self.lsp_client = None;
+        }
+        self.set_mode(terminal, Mode::Normal);
+        self.command = None;
     }
 
     fn save_current_file(&mut self, terminal: &mut DefaultTerminal) {
@@ -58,7 +91,9 @@ impl App {
 
     fn quit_current_file(&mut self, terminal: &mut DefaultTerminal) {
         if self.buffers.len() == 1 {
-            _ = self.lsp_client.shutdown();
+            if let Some(lsp) = self.lsp_client.as_mut() {
+                _ = lsp.shutdown();
+            }
             self.quitting = true;
         }
         // -2 because we are gonna remove one more right now, to avoid an extra assign.
@@ -76,7 +111,9 @@ impl App {
     fn quit_all(&mut self, terminal: &mut DefaultTerminal) {
         self.set_mode(terminal, Mode::Normal);
         self.command = None;
-        _ = self.lsp_client.shutdown();
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+        }
         self.quitting = true;
     }
     fn save_quit_all(&mut self, terminal: &mut DefaultTerminal) {
@@ -86,7 +123,9 @@ impl App {
             // TODO: Handle this better
             buf.save_file().expect("Could not save all files.");
         });
-        _ = self.lsp_client.shutdown();
+        if let Some(lsp) = self.lsp_client.as_mut() {
+            _ = lsp.shutdown();
+        }
         self.quitting = true;
     }
     fn next_buffer(&mut self, terminal: &mut DefaultTerminal) {

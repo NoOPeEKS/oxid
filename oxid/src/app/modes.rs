@@ -34,11 +34,11 @@ impl App {
                 self.completion_list = None;
                 self.hover = None;
                 self.selected_completion = None;
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap();
+                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap_or_default();
             }
             Mode::Insert => {
                 self.mode = Mode::Insert;
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBar).unwrap();
+                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBar).unwrap_or_default();
             }
             Mode::Visual => {
                 if self.mode == Mode::Normal {

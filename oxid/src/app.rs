@@ -6,6 +6,7 @@ use oxid_lsp::types::{CompletionItem, CompletionList, Diagnostic, Hover};
 use ratatui::widgets::TableState;
 
 use crate::buffer::Buffer;
+use crate::config::Config;
 use crate::events::EventKind;
 use crate::ui::ui;
 
@@ -23,7 +24,7 @@ pub struct App {
     pub current_buf_index: usize,
     pub registers: HashMap<String, String>,
     pub command: Option<String>,
-    pub lsp_client: LspClient,
+    pub lsp_client: Option<LspClient>,
     pub diagnostics: Option<Vec<Diagnostic>>,
     pub show_diagnostics: bool,
     pub completion_list: Option<CompletionList>,
@@ -36,18 +37,37 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(buffers: Vec<Buffer>, tsize_x: usize, tsize_y: usize) -> Self {
-        let mut client = oxid_lsp::client::start_lsp().expect("Could not start LSP");
-        client
-            .initialize()
-            .expect("Could not initialize the LSP Client");
-        let file_path = buffers[0]
+    pub fn new(buffers: Vec<Buffer>, tsize_x: usize, tsize_y: usize, config: Config) -> Self {
+        let file_type = buffers[0]
             .file_path
-            .clone()
-            .expect("Could not extract file path on init");
-        client
-            .did_open(&file_path, buffers[0].file_text.to_string().as_ref())
-            .expect("Could not send initial textDocument/didOpen request.");
+            .as_ref()
+            .expect("First file should have a path")
+            .split(".")
+            .last();
+
+        let mut client = if let Some(ftype) = file_type {
+            config
+                .lsp
+                .iter()
+                .find(|lsp| lsp.filetype == ftype)
+                .map(|lsp| oxid_lsp::client::start_lsp(&lsp.command).expect("Could not start LSP"))
+        } else {
+            None
+        };
+
+        if let Some(lsp_cl) = client.as_mut() {
+            lsp_cl
+                .initialize()
+                .expect("Could not initialize the LSP Client");
+            let file_path = buffers[0]
+                .file_path
+                .clone()
+                .expect("Could not extract file path on init");
+            lsp_cl
+                .did_open(&file_path, buffers[0].file_text.to_string().as_ref())
+                .expect("Could not send initial textDocument/didOpen request.");
+        }
+
         App {
             mode: modes::Mode::Normal,
             tsize_x,
