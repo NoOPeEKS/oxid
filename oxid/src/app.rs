@@ -37,7 +37,7 @@ pub struct App {
 
 impl App {
     pub fn new(buffers: Vec<Buffer>, tsize_x: usize, tsize_y: usize) -> Self {
-        let mut client = oxid_lsp::client::start_lsp().expect("Could not start LSP");
+        let mut client = oxid_lsp::client::start_lsp("pyrefly lsp").expect("Could not start LSP");
         client
             .initialize()
             .expect("Could not initialize the LSP Client");

@@ -126,9 +126,16 @@ pub fn lsp_send_notification(
     Ok(())
 }
 
-pub fn start_lsp() -> anyhow::Result<LspClient> {
-    let mut lsp = Command::new("pyrefly")
-        .arg("lsp")
+pub fn start_lsp(lsp_cmd: &str) -> anyhow::Result<LspClient> {
+    let cmd_parts: Vec<&str> = lsp_cmd.split_whitespace().collect();
+    if cmd_parts.is_empty() {
+        anyhow::bail!("Cannot start lsp with an empty command!");
+    }
+    let mut lsp = Command::new(cmd_parts[0]);
+    for arg in &cmd_parts[1..] {
+        lsp.arg(arg);
+    }
+    let mut lsp = lsp
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -549,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_initialize_lsp() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         lsp.shutdown().unwrap();
@@ -557,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_did_open() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
@@ -571,7 +578,7 @@ mod tests {
 
     #[test]
     pub fn test_hover() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
 
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
@@ -631,7 +638,7 @@ fn next_id() -> usize {
 
     #[test]
     fn test_completion() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
@@ -661,7 +668,7 @@ fn next_id() -> usize {
 
     #[test]
     fn test_did_change() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
@@ -692,7 +699,7 @@ fn next_id() -> usize {
 
     #[test]
     fn test_did_save() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
@@ -710,7 +717,7 @@ fn next_id() -> usize {
 
     #[test]
     fn test_get_diagnostics() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
@@ -746,7 +753,7 @@ fn next_id() -> usize {
 
     #[test]
     fn test_did_close() {
-        let mut lsp = start_lsp().unwrap();
+        let mut lsp = start_lsp("rust-analyzer").unwrap();
         lsp.initialize().unwrap();
         assert!(lsp.initialized);
         if lsp.initialized {
