@@ -169,8 +169,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
         // let mode = app.mode.to_string();
         // let command = app.command.clone();
         // let dbg_str = format!("MODE: {mode}\n CURRENT COMMAND: {command:#?}");
-        let diags = app.diagnostics.clone();
-        eprintln!("DIAGS: {diags:#?}");
+        // let diags = app.diagnostics.clone();
         let dbg_str = format!("Nothing");
 
         let popup = DebugPopup::default()

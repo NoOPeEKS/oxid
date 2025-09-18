@@ -13,6 +13,9 @@ pub enum Command {
     PreviousBuffer, // ":bp"
 
     GoToLine(isize), // ":12"
+
+    StartLsp(String),
+    StopLsp,
 }
 
 impl Command {
@@ -62,6 +65,16 @@ impl FromStr for Command {
                 num if num.parse::<usize>().is_ok() => {
                     Ok(Self::GoToLine(num.parse::<isize>().unwrap_or(-1)))
                 }
+
+                "LspStart" => {
+                    let mut lsp_cmd = String::new();
+                    for cmd_part in cmd_parts {
+                        lsp_cmd.push_str(&format!(" {cmd_part}"));
+                    }
+                    Ok(Self::StartLsp(lsp_cmd))
+                }
+
+                "LspStop" => Ok(Self::StopLsp),
 
                 _ => anyhow::bail!("Unknown command: {cmd}"),
             }
