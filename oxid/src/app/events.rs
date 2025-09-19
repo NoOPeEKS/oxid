@@ -108,10 +108,12 @@ impl App {
 
     fn scroll_up(&mut self) {
         self.buffers[self.current_buf_index].scroll_up(5);
+        self.hover = None;
     }
 
     fn scroll_down(&mut self) {
         self.buffers[self.current_buf_index].scroll_down(5);
+        self.hover = None;
     }
 
     fn handle_key(&mut self, ch: char, terminal: &mut DefaultTerminal) {
@@ -123,6 +125,7 @@ impl App {
             }
         }
         if self.mode == Mode::Normal || self.mode == Mode::Visual {
+            self.hover = None;
             let vis = self.mode == Mode::Visual;
             match ch {
                 '[' => {
@@ -241,7 +244,11 @@ impl App {
                     self.set_mode(terminal, Mode::Insert);
                 }
                 'K' => {
-                    self.hover();
+                    if self.hover.is_none() {
+                        self.hover();
+                    } else {
+                        self.hover = None;
+                    }
                 }
                 _ => {}
             }
