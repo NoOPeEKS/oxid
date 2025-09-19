@@ -1,14 +1,15 @@
-use ratatui::DefaultTerminal;
+use ratatui::prelude::{Backend, Terminal};
 use ropey::Rope;
 
 use std::{fs::OpenOptions, io::BufReader};
 
 use super::App;
+use crate::app::blinking::CursorStyleSupport;
 use crate::buffer::Buffer;
 use crate::{app::modes::Mode, command::Command};
 
 impl App {
-    pub fn apply_command(&mut self, terminal: &mut DefaultTerminal) {
+    pub fn apply_command<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         if let Some(cmd_str) = &self.command {
             match Command::parse(cmd_str) {
                 Ok(cmd) => self.execute_command(cmd, terminal),
@@ -19,12 +20,16 @@ impl App {
         }
     }
 
-    fn reset_command(&mut self, terminal: &mut DefaultTerminal) {
+    fn reset_command<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.set_mode(terminal, Mode::Normal);
         self.command = None;
     }
 
-    fn execute_command(&mut self, cmd: Command, terminal: &mut DefaultTerminal) {
+    fn execute_command<B: Backend + CursorStyleSupport>(
+        &mut self,
+        cmd: Command,
+        terminal: &mut Terminal<B>,
+    ) {
         match cmd {
             Command::SaveAll => self.save_all(terminal),
             Command::QuitAll => self.quit_all(terminal),
@@ -40,7 +45,11 @@ impl App {
         }
     }
 
-    fn start_lsp(&mut self, command: &str, terminal: &mut DefaultTerminal) {
+    fn start_lsp<B: Backend + CursorStyleSupport>(
+        &mut self,
+        command: &str,
+        terminal: &mut Terminal<B>,
+    ) {
         if self.lsp_client.is_none() {
             let client = oxid_lsp::client::start_lsp(command).ok();
             self.lsp_client = client;
@@ -62,7 +71,7 @@ impl App {
         self.command = None;
     }
 
-    fn stop_lsp(&mut self, terminal: &mut DefaultTerminal) {
+    fn stop_lsp<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         if let Some(lsp) = self.lsp_client.as_mut() {
             _ = lsp.shutdown();
             self.lsp_client = None;
@@ -71,7 +80,7 @@ impl App {
         self.command = None;
     }
 
-    fn save_current_file(&mut self, terminal: &mut DefaultTerminal) {
+    fn save_current_file<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         // TODO: Handle this better
         self.buffers[self.current_buf_index]
             .save_file()
@@ -80,7 +89,7 @@ impl App {
         self.command = None;
     }
 
-    fn save_all(&mut self, terminal: &mut DefaultTerminal) {
+    fn save_all<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.buffers.iter().for_each(|buf| {
             // TODO: Handle this better
             buf.save_file().expect("Could not save all files");
@@ -89,7 +98,7 @@ impl App {
         self.command = None;
     }
 
-    fn quit_current_file(&mut self, terminal: &mut DefaultTerminal) {
+    fn quit_current_file<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         if self.buffers.len() == 1 {
             if let Some(lsp) = self.lsp_client.as_mut() {
                 _ = lsp.shutdown();
@@ -108,7 +117,7 @@ impl App {
         self.command = None;
     }
 
-    fn quit_all(&mut self, terminal: &mut DefaultTerminal) {
+    fn quit_all<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.set_mode(terminal, Mode::Normal);
         self.command = None;
         if let Some(lsp) = self.lsp_client.as_mut() {
@@ -116,7 +125,7 @@ impl App {
         }
         self.quitting = true;
     }
-    fn save_quit_all(&mut self, terminal: &mut DefaultTerminal) {
+    fn save_quit_all<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.set_mode(terminal, Mode::Normal);
         self.command = None;
         self.buffers.iter().for_each(|buf| {
@@ -128,7 +137,7 @@ impl App {
         }
         self.quitting = true;
     }
-    fn next_buffer(&mut self, terminal: &mut DefaultTerminal) {
+    fn next_buffer<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         // .len() and not .len() - 1 bc we want only 0 when index would be
         // greater than allowed index (len() - 1).
         if self.current_buf_index + 1 == self.buffers.len() {
@@ -140,7 +149,7 @@ impl App {
         self.command = None;
     }
 
-    fn previous_buffer(&mut self, terminal: &mut DefaultTerminal) {
+    fn previous_buffer<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         if self.current_buf_index as isize - 1 == -1 {
             self.current_buf_index = self.buffers.len() - 1;
         } else {
@@ -150,7 +159,11 @@ impl App {
         self.command = None;
     }
 
-    fn open_file(&mut self, file: String, terminal: &mut DefaultTerminal) {
+    fn open_file<B: Backend + CursorStyleSupport>(
+        &mut self,
+        file: String,
+        terminal: &mut Terminal<B>,
+    ) {
         if let Some(buffer) = self.create_new_buffer(file) {
             self.buffers.push(buffer);
             self.current_buf_index = self.buffers.len() - 1;
@@ -159,7 +172,11 @@ impl App {
         self.command = None;
     }
 
-    fn go_to_line(&mut self, line_num: isize, terminal: &mut DefaultTerminal) {
+    fn go_to_line<B: Backend + CursorStyleSupport>(
+        &mut self,
+        line_num: isize,
+        terminal: &mut Terminal<B>,
+    ) {
         let max_buf_lines = self.buffers[self.current_buf_index].file_text.len_lines() - 1;
 
         if line_num == -1 || line_num > max_buf_lines as isize {

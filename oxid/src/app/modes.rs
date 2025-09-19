@@ -1,11 +1,11 @@
-use ratatui::DefaultTerminal;
 use ratatui::crossterm::cursor::SetCursorStyle;
-use ratatui::crossterm::execute;
+use ratatui::prelude::{Backend, Terminal};
 
 use std::fmt::Display;
 
 use super::App;
 use crate::buffer::types::Selection;
+use super::blinking::CursorStyleSupport;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -27,18 +27,21 @@ impl Display for Mode {
 }
 
 impl App {
-    pub fn set_mode(&mut self, terminal: &mut DefaultTerminal, mode: Mode) {
+    pub fn set_mode<B>(&mut self, terminal: &mut Terminal<B>, mode: Mode)
+    where
+        B: Backend + CursorStyleSupport,
+    {
         match mode {
             Mode::Normal => {
                 self.mode = Mode::Normal;
                 self.completion_list = None;
                 self.hover = None;
                 self.selected_completion = None;
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap_or_default();
+                self.set_cursor_style(terminal, SetCursorStyle::BlinkingBlock);
             }
             Mode::Insert => {
                 self.mode = Mode::Insert;
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBar).unwrap_or_default();
+                self.set_cursor_style(terminal, SetCursorStyle::BlinkingBar);
             }
             Mode::Visual => {
                 if self.mode == Mode::Normal {
@@ -59,7 +62,7 @@ impl App {
                     self.buffers[self.current_buf_index].selection = None;
                     self.buffers[self.current_buf_index].update_selected_string();
                 }
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap();
+                self.set_cursor_style(terminal, SetCursorStyle::BlinkingBlock);
             }
             Mode::Command => {
                 if self.mode == Mode::Normal {
@@ -73,8 +76,15 @@ impl App {
                     self.buffers[self.current_buf_index].update_selected_string();
                     self.command = None;
                 }
-                execute!(terminal.backend_mut(), SetCursorStyle::BlinkingBlock).unwrap();
+                self.set_cursor_style(terminal, SetCursorStyle::BlinkingBlock);
             }
         }
+    }
+
+    fn set_cursor_style<B>(&self, terminal: &mut Terminal<B>, style: SetCursorStyle)
+    where
+        B: Backend + CursorStyleSupport,
+    {
+        terminal.backend_mut().set_cursor_style(style);
     }
 }
