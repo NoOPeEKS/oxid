@@ -1,0 +1,9 @@
+[package]
+name = "oxid-test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ropey.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true

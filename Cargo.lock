@@ -526,6 +526,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxid-test"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.29.0",
+ "ratatui",
+ "ropey",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

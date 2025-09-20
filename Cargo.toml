@@ -3,9 +3,12 @@ resolver = "3"
 members = [
   "oxid",
   "oxid-lsp"
-]
+, "oxid-test"]
 
 [workspace.dependencies]
 anyhow = "1.0.98"
+ropey = "1.6.1"
+crossterm = "0.29.0"
+ratatui = { version = "0.29.0", features = ["all-widgets"] }
 tokio = { version = "1.47.1", features = ["full"]}
 serde = { version = "1.0.219", features = ["derive"] }
