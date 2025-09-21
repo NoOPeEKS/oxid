@@ -11,11 +11,11 @@ use crate::config::Config;
 use crate::events::EventKind;
 use crate::ui::ui;
 
-mod blinking;
 mod commands;
 mod events;
 mod lsp;
 pub mod modes;
+pub mod blinking;
 
 use blinking::CursorStyleSupport;
 

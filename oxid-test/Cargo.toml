@@ -7,3 +7,5 @@ edition = "2024"
 ropey.workspace = true
 ratatui.workspace = true
 crossterm.workspace = true
+
+oxid = { path = "../oxid"}

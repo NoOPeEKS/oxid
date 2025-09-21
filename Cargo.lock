@@ -530,6 +530,7 @@ name = "oxid-test"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.29.0",
+ "oxid",
  "ratatui",
  "ropey",
 ]
@@ -846,6 +847,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "oxid",
+ "oxid-lsp",
+ "oxid-test",
+ "ropey",
 ]
 
 [[package]]

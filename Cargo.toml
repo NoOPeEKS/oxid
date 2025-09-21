@@ -2,8 +2,10 @@
 resolver = "3"
 members = [
   "oxid",
-  "oxid-lsp"
-, "oxid-test"]
+  "oxid-lsp",
+  "oxid-test",
+  "tests"
+]
 
 [workspace.dependencies]
 anyhow = "1.0.98"
