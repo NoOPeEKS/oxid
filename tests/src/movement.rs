@@ -353,4 +353,51 @@ mod tests {
             5 + app_handle.buffers[0].numbar_space
         );
     }
+
+    #[test]
+    fn scroll_down() {
+        let test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis shouldn't compile xd."),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.scroll_down(1);
+        let app_handle = test_oxid.app.lock().unwrap();
+        assert_eq!(app_handle.buffers[0].current_position.line, 1);
+        assert_eq!(
+            app_handle.buffers[0].current_position.character,
+            app_handle.buffers[0].numbar_space
+        );
+    }
+
+    #[test]
+    fn scroll_up() {
+        let mut test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis shouldn't compile xd."),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.place_cursor(0, 1);
+        test_oxid.scroll_up(1);
+        let app_handle = test_oxid.app.lock().unwrap();
+        assert_eq!(app_handle.buffers[0].current_position.line, 0);
+        assert_eq!(
+            app_handle.buffers[0].current_position.character,
+            app_handle.buffers[0].numbar_space
+        );
+    }
 }
