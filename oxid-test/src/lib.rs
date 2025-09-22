@@ -5,8 +5,15 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
-use std::thread::{JoinHandle};
+use std::thread::JoinHandle;
 use std::time::Duration;
+
+pub enum CursorDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 pub struct TestOxid {
     pub app: Arc<Mutex<App>>,
@@ -92,6 +99,29 @@ impl TestOxid {
         self.normal_mode();
     }
 
+    pub fn place_cursor(&mut self, x: usize, y: usize) {
+        let mut app_guard = self.app.lock().unwrap();
+        let current_buf = app_guard.current_buf_index;
+        let numbar_space = app_guard.buffers[current_buf].numbar_space;
+        app_guard.buffers[current_buf].current_position.character = x + numbar_space;
+        app_guard.buffers[current_buf].current_position.line = y;
+    }
+
+    pub fn move_cursor(&self, direction: CursorDirection, times: usize) {
+        self.normal_mode();
+        let key = match direction {
+            CursorDirection::Up => 'k',
+            CursorDirection::Down => 'j',
+            CursorDirection::Left => 'h',
+            CursorDirection::Right => 'l',
+        };
+
+        for _ in 0..times {
+            self.sender.send(EventKind::KeyPressed(key)).unwrap();
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
     pub fn get_buffer_text(&self) -> String {
         for _ in 0..50 {
             if let Ok(app) = self.app.try_lock() {
@@ -112,4 +142,3 @@ impl TestOxid {
         panic!("Could not acquire lock to read mode");
     }
 }
-
