@@ -15,6 +15,14 @@ pub enum CursorDirection {
     Right,
 }
 
+pub enum Motion {
+    NextWord,
+    PrevWord,
+    EndWord,
+    StartLine,
+    EndLine,
+}
+
 pub struct TestOxid {
     pub app: Arc<Mutex<App>>,
     pub sender: Sender<EventKind>,
@@ -99,12 +107,41 @@ impl TestOxid {
         self.normal_mode();
     }
 
+    pub fn insert_start_line(&self, text: &str) {
+        self.normal_mode();
+        self.sender.send(EventKind::ShiftedKey('I')).unwrap();
+        std::thread::sleep(Duration::from_millis(15));
+
+        for char in text.chars() {
+            self.sender.send(EventKind::KeyPressed(char)).unwrap();
+            std::thread::sleep(Duration::from_millis(5));
+        }
+
+        self.normal_mode();
+    }
+
     pub fn place_cursor(&mut self, x: usize, y: usize) {
         let mut app_guard = self.app.lock().unwrap();
         let current_buf = app_guard.current_buf_index;
         let numbar_space = app_guard.buffers[current_buf].numbar_space;
         app_guard.buffers[current_buf].current_position.character = x + numbar_space;
         app_guard.buffers[current_buf].current_position.line = y;
+    }
+
+    pub fn execute_motion(&mut self, motion: Motion, times: usize) {
+        self.normal_mode();
+        let key = match motion {
+            Motion::NextWord => 'w',
+            Motion::PrevWord => 'b',
+            Motion::EndWord => 'e',
+            Motion::StartLine => '0',
+            Motion::EndLine => '$',
+        };
+
+        for _ in 0..times {
+            self.sender.send(EventKind::KeyPressed(key)).unwrap();
+            std::thread::sleep(Duration::from_millis(5));
+        }
     }
 
     pub fn move_cursor(&self, direction: CursorDirection, times: usize) {
