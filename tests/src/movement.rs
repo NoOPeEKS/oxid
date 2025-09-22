@@ -283,4 +283,74 @@ mod tests {
             10 + app_handle.buffers[0].numbar_space
         );
     }
+
+    #[test]
+    fn move_word_goes_to_next_line() {
+        let mut test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis shouldn't compile xd."),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.execute_motion(Motion::NextWord, 2);
+        let app_handle = test_oxid.app.lock().unwrap();
+        assert_eq!(app_handle.buffers[0].current_position.line, 1);
+        assert_eq!(
+            app_handle.buffers[0].current_position.character,
+            app_handle.buffers[0].numbar_space
+        );
+    }
+
+    #[test]
+    fn move_end_word_goes_to_next_line() {
+        let mut test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis shouldn't compile xd."),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.execute_motion(Motion::EndWord, 3);
+        let app_handle = test_oxid.app.lock().unwrap();
+        assert_eq!(app_handle.buffers[0].current_position.line, 1);
+        assert_eq!(
+            app_handle.buffers[0].current_position.character,
+            3 + app_handle.buffers[0].numbar_space
+        );
+    }
+
+    #[test]
+    fn move_back_word_goes_to_prev_line() {
+        let mut test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis shouldn't compile xd."),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.place_cursor(3, 1);
+        test_oxid.execute_motion(Motion::PrevWord, 2);
+        let app_handle = test_oxid.app.lock().unwrap();
+        assert_eq!(app_handle.buffers[0].current_position.line, 0);
+        assert_eq!(
+            app_handle.buffers[0].current_position.character,
+            5 + app_handle.buffers[0].numbar_space
+        );
+    }
 }
