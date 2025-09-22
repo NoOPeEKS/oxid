@@ -183,6 +183,14 @@ impl TestOxid {
         }
     }
 
+    pub fn enter(&self, times: usize) {
+        self.insert_mode();
+        for _ in 0..times {
+            self.sender.send(EventKind::EnterKey).unwrap();
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
     pub fn get_buffer_text(&self) -> String {
         for _ in 0..50 {
             if let Ok(app) = self.app.try_lock() {
