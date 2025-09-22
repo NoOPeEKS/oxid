@@ -151,4 +151,29 @@ mod tests {
             "Hola m\nundo\nThis is new".to_string()
         );
     }
+
+    #[test]
+    fn insert_line_below() {
+        let mut test_oxid = TestOxid::new(
+            Some("/dummy/path.rs".into()),
+            Rope::from_str("Hola mundo\nThis is new"),
+            80,
+            20,
+            Config {
+                lsp: vec![LspConfig {
+                    filetype: "py".to_string(),
+                    command: "pyrefly lsp".to_string(),
+                }],
+            },
+        );
+        test_oxid.normal_mode();
+        test_oxid.place_cursor(3, 0);
+        test_oxid.insert_line_below();
+        assert_eq!(
+            test_oxid.app.lock().unwrap().buffers[0]
+                .file_text
+                .to_string(),
+            "Hola mundo\n\nThis is new".to_string()
+        );
+    }
 }

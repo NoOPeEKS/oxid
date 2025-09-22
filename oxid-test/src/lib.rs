@@ -94,6 +94,12 @@ impl TestOxid {
         std::thread::sleep(Duration::from_millis(10));
     }
 
+    pub fn insert_line_below(&self) {
+        self.normal_mode();
+        self.sender.send(EventKind::KeyPressed('o')).unwrap();
+        std::thread::sleep(Duration::from_millis(5));
+    }
+
     pub fn append_end_line(&self, text: &str) {
         self.normal_mode();
         self.sender.send(EventKind::ShiftedKey('A')).unwrap();
