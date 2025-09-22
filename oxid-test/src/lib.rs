@@ -93,6 +93,17 @@ impl TestOxid {
         self.sender.send(EventKind::KeyPressed('i')).unwrap();
         std::thread::sleep(Duration::from_millis(10));
     }
+    
+    pub fn visual_mode(&self) {
+        self.normal_mode();
+        self.sender.send(EventKind::KeyPressed('v')).unwrap();
+        std::thread::sleep(Duration::from_millis(10))
+    }
+
+    pub fn yank(&self) {
+        self.sender.send(EventKind::KeyPressed('y')).unwrap();
+        std::thread::sleep(Duration::from_millis(5));
+    }
 
     pub fn insert_line_below(&self) {
         self.normal_mode();
@@ -135,7 +146,6 @@ impl TestOxid {
     }
 
     pub fn execute_motion(&mut self, motion: Motion, times: usize) {
-        self.normal_mode();
         let key = match motion {
             Motion::NextWord => 'w',
             Motion::PrevWord => 'b',

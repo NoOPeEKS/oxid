@@ -205,6 +205,7 @@ mod tests {
                 }],
             },
         );
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::NextWord, 1);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 0);
@@ -228,6 +229,7 @@ mod tests {
                 }],
             },
         );
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::EndWord, 1);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 0);
@@ -252,6 +254,7 @@ mod tests {
             },
         );
         test_oxid.place_cursor(7, 0);
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::StartLine, 1);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 0);
@@ -275,6 +278,7 @@ mod tests {
                 }],
             },
         );
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::EndLine, 1);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 0);
@@ -298,6 +302,7 @@ mod tests {
                 }],
             },
         );
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::NextWord, 2);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 1);
@@ -321,6 +326,7 @@ mod tests {
                 }],
             },
         );
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::EndWord, 3);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 1);
@@ -345,6 +351,7 @@ mod tests {
             },
         );
         test_oxid.place_cursor(3, 1);
+        test_oxid.normal_mode();
         test_oxid.execute_motion(Motion::PrevWord, 2);
         let app_handle = test_oxid.app.lock().unwrap();
         assert_eq!(app_handle.buffers[0].current_position.line, 0);
