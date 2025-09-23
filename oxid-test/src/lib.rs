@@ -23,6 +23,20 @@ pub enum Motion {
     EndLine,
 }
 
+pub enum Command<'a> {
+    SaveCurrentBuffer,
+    SaveAllBuffers,
+    QuitCurrentBuffer,
+    QuitAllBuffers,
+    SaveQuitAllBuffers,
+    OpenBuffer(&'a str),
+    NextBuffer,
+    PreviousBuffer,
+    GoToLine(usize),
+    LspStart(&'a str),
+    LspStop,
+}
+
 pub struct TestOxid {
     pub app: Arc<Mutex<App>>,
     pub sender: Sender<EventKind>,
@@ -93,11 +107,63 @@ impl TestOxid {
         self.sender.send(EventKind::KeyPressed('i')).unwrap();
         std::thread::sleep(Duration::from_millis(10));
     }
-    
+
     pub fn visual_mode(&self) {
         self.normal_mode();
         self.sender.send(EventKind::KeyPressed('v')).unwrap();
         std::thread::sleep(Duration::from_millis(10))
+    }
+    
+    pub fn command_mode(&self) {
+        self.normal_mode();
+        self.sender.send(EventKind::KeyPressed(':')).unwrap();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+
+    pub fn execute_command(&self, command: Command) {
+        fn send_cmd(cmd: &str, sender: Sender<EventKind>) {
+            for char in cmd.chars() {
+                sender.send(EventKind::KeyPressed(char)).unwrap();
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            sender.send(EventKind::EnterKey).unwrap();
+        }
+        self.command_mode();
+        match command {
+            Command::SaveCurrentBuffer => {
+                send_cmd("w", self.sender.clone());
+            }
+            Command::SaveAllBuffers => {
+                send_cmd("wa", self.sender.clone());
+            }
+            Command::QuitCurrentBuffer => {
+                send_cmd("q", self.sender.clone());
+            }
+            Command::QuitAllBuffers => {
+                send_cmd("qa", self.sender.clone());
+            }
+            Command::SaveQuitAllBuffers => {
+                send_cmd("wqa", self.sender.clone());
+            }
+            Command::OpenBuffer(path) => {
+                send_cmd(&format!("e {path}"), self.sender.clone());
+            }
+            Command::NextBuffer => {
+                send_cmd("bn", self.sender.clone());
+            }
+            Command::PreviousBuffer => {
+                send_cmd("bp", self.sender.clone());
+            }
+            Command::GoToLine(line_num) => {
+                send_cmd(&line_num.to_string(), self.sender.clone());
+            }
+            Command::LspStart(lsp_cmd) => {
+                send_cmd(&format!("LspStart {lsp_cmd}"), self.sender.clone());
+            }
+            Command::LspStop => {
+                send_cmd("LspStop", self.sender.clone());
+            }
+        }
     }
 
     pub fn yank(&self) {

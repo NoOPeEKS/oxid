@@ -104,6 +104,8 @@ impl App {
                 _ = lsp.shutdown();
             }
             self.quitting = true;
+            self.buffers.remove(0);
+            return;
         }
         // -2 because we are gonna remove one more right now, to avoid an extra assign.
         let num_buffers = self.buffers.len() - 2;
