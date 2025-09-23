@@ -3,3 +3,4 @@ mod init;
 mod movement;
 mod visual;
 mod commands;
+mod lsp;

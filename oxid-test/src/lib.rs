@@ -166,6 +166,28 @@ impl TestOxid {
         }
     }
 
+    pub fn hover(&self) {
+        self.normal_mode();
+        self.sender.send(EventKind::ShiftedKey('K')).unwrap();
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    pub fn request_completion(&self) {
+        self.insert_mode();
+        self.sender.send(EventKind::RequestCompletion).unwrap();
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    pub fn update_diagnostics(&self) {
+        // TODO: Make this work.
+        self.app.lock().unwrap().buffers[0].save_file().unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        self.sender.send(EventKind::SaveFile).unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        self.app.lock().unwrap().get_diagnostics();
+        std::thread::sleep(Duration::from_millis(2000));
+    }
+
     pub fn yank(&self) {
         self.sender.send(EventKind::KeyPressed('y')).unwrap();
         std::thread::sleep(Duration::from_millis(5));

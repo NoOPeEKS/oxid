@@ -387,7 +387,7 @@ impl From<InsertTextMode> for i32 {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionList {
     pub is_incomplete: bool,
@@ -414,7 +414,7 @@ impl CompletionList {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemDefaults {
     pub commit_characters: Option<Vec<String>>,
