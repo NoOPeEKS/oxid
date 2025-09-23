@@ -168,6 +168,7 @@ mod tests {
 
     #[test]
     fn get_diagnostics() {
+        // TODO: fix this test
         let test_oxid = TestOxid::new(
             Some("/tmp/lsp.py".into()),
             Rope::from_str("doesn't make any sense&should see diagnostics"),
