@@ -1,0 +1,11 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ropey.workspace = true
+
+oxid = { path = "../oxid" }
+oxid-lsp = { path = "../oxid-lsp" }
+oxid-test = { path = "../oxid-test" }

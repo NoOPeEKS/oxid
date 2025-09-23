@@ -3,6 +3,7 @@ use std::sync::mpsc::Receiver;
 
 use oxid_lsp::client::LspClient;
 use oxid_lsp::types::{CompletionItem, CompletionList, Diagnostic, Hover};
+use ratatui::prelude::{Backend, Terminal};
 use ratatui::widgets::TableState;
 
 use crate::buffer::Buffer;
@@ -14,6 +15,9 @@ mod commands;
 mod events;
 mod lsp;
 pub mod modes;
+pub mod blinking;
+
+use blinking::CursorStyleSupport;
 
 pub struct App {
     pub mode: modes::Mode,
@@ -90,10 +94,10 @@ impl App {
         }
     }
 
-    pub fn run(
+    pub fn run<B: Backend + CursorStyleSupport>(
         &mut self,
         event_receiver: Receiver<EventKind>,
-        terminal: &mut ratatui::DefaultTerminal,
+        terminal: &mut Terminal<B>,
     ) -> anyhow::Result<()> {
         loop {
             terminal.draw(|frame| ui(frame, self))?;

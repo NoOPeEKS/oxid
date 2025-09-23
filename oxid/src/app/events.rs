@@ -1,5 +1,6 @@
-use ratatui::DefaultTerminal;
+use ratatui::prelude::{Backend, Terminal};
 
+use crate::app::blinking::CursorStyleSupport;
 use crate::buffer::types::Selection;
 use crate::events::EventKind;
 
@@ -7,10 +8,10 @@ use super::App;
 use super::modes::Mode;
 
 impl App {
-    pub fn handle_event(
+    pub fn handle_event<B: Backend + CursorStyleSupport>(
         &mut self,
         event: EventKind,
-        terminal: &mut DefaultTerminal,
+        terminal: &mut Terminal<B>,
     ) -> anyhow::Result<()> {
         match event {
             EventKind::RequestCompletion => self.handle_completion()?,
@@ -72,7 +73,10 @@ impl App {
         Ok(())
     }
 
-    fn handle_save_file(&mut self, terminal: &mut DefaultTerminal) -> anyhow::Result<()> {
+    fn handle_save_file<B: Backend + CursorStyleSupport>(
+        &mut self,
+        terminal: &mut Terminal<B>,
+    ) -> anyhow::Result<()> {
         if self.buffers[self.current_buf_index].save_file().is_ok() {
             let fp = self.buffers[self.current_buf_index]
                 .file_path
@@ -96,7 +100,7 @@ impl App {
         Ok(())
     }
 
-    fn handle_normal_mode(&mut self, terminal: &mut DefaultTerminal) {
+    fn handle_normal_mode<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.set_mode(terminal, Mode::Normal);
         self.buffers[self.current_buf_index].selection = None;
         self.buffers[self.current_buf_index].selected_string = None;
@@ -116,7 +120,11 @@ impl App {
         self.hover = None;
     }
 
-    fn handle_key(&mut self, ch: char, terminal: &mut DefaultTerminal) {
+    fn handle_key<B: Backend + CursorStyleSupport>(
+        &mut self,
+        ch: char,
+        terminal: &mut Terminal<B>,
+    ) {
         if self.mode == Mode::Command {
             if let Some(cmd_str) = &mut self.command {
                 cmd_str.push(ch);
@@ -232,7 +240,11 @@ impl App {
         }
     }
 
-    fn handle_shifted_key(&mut self, ch: char, terminal: &mut DefaultTerminal) {
+    fn handle_shifted_key<B: Backend + CursorStyleSupport>(
+        &mut self,
+        ch: char,
+        terminal: &mut Terminal<B>,
+    ) {
         if self.mode == Mode::Normal {
             match ch {
                 'I' => {
@@ -274,7 +286,7 @@ impl App {
         }
     }
 
-    fn handle_enter(&mut self, terminal: &mut DefaultTerminal) {
+    fn handle_enter<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         if self.mode == Mode::Insert {
             if let Some(completion_item) = &self.selected_completion {
                 let buffer_pos = self.buffers[self.current_buf_index].get_viewport_cursor_pos();

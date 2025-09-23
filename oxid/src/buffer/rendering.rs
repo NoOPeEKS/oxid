@@ -30,7 +30,7 @@ impl Buffer {
         }
     }
 
-    pub fn get_visible_lines(&self) -> Vec<ropey::RopeSlice> {
+    pub fn get_visible_lines(&self) -> Vec<ropey::RopeSlice<'_>> {
         let start = self.vertical_scroll;
         let end = std::cmp::min(start + self.viewport_height, self.file_text.len_lines());
 
