@@ -126,6 +126,7 @@ impl App {
             _ = lsp.shutdown();
         }
         self.quitting = true;
+        self.buffers.clear();
     }
     fn save_quit_all<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         self.set_mode(terminal, Mode::Normal);
@@ -138,6 +139,7 @@ impl App {
             _ = lsp.shutdown();
         }
         self.quitting = true;
+        self.buffers.clear();
     }
     fn next_buffer<B: Backend + CursorStyleSupport>(&mut self, terminal: &mut Terminal<B>) {
         // .len() and not .len() - 1 bc we want only 0 when index would be

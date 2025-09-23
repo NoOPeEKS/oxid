@@ -32,7 +32,7 @@ pub enum Command<'a> {
     OpenBuffer(&'a str),
     NextBuffer,
     PreviousBuffer,
-    GoToLine(usize),
+    GoToLine(isize),
     LspStart(&'a str),
     LspStop,
 }
