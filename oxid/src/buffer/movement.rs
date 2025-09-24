@@ -45,13 +45,15 @@ impl Buffer {
     pub fn scroll_up(&mut self, lines: usize) {
         self.vertical_scroll = self.vertical_scroll.saturating_sub(lines);
         self.current_position.line = self.current_position.line.saturating_sub(lines);
-        // if self.file_lines[self.current_position.line].length
-        if self.file_text.line(self.current_position.line).len_chars()
-            < self.current_position.character - self.numbar_space
-        {
-            self.current_position.character =
-                // self.file_lines[self.current_position.line].length + self.numbar_space;
-                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
+        let len_chars = self.file_text.line(self.current_position.line).len_chars();
+        if len_chars > 0 {
+            // If new line length is smaller than older position, clip it to end
+            if len_chars < self.current_position.character - self.numbar_space {
+                self.current_position.character = self.numbar_space + (len_chars - 1);
+            }
+            // If not, just ignore and keep it.
+        } else {
+            self.current_position.character = self.numbar_space;
         }
     }
 
@@ -65,11 +67,15 @@ impl Buffer {
                 self.current_position.line.saturating_add(lines)
             }
         };
-        if self.file_text.line(self.current_position.line).len_chars()
-            < self.current_position.character - self.numbar_space
-        {
-            self.current_position.character =
-                self.file_text.line(self.current_position.line).len_chars() + self.numbar_space;
+        let len_chars = self.file_text.line(self.current_position.line).len_chars();
+        if len_chars > 0 {
+            // If new line length is smaller than older position, clip it to end
+            if len_chars < self.current_position.character - self.numbar_space {
+                self.current_position.character = self.numbar_space + (len_chars - 1);
+            }
+            // If not, just ignore and keep it.
+        } else {
+            self.current_position.character = self.numbar_space;
         }
     }
 
